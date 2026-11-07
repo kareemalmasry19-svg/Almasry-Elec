@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>حاسبات المصري للكهرباء</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: sticky tab rail on top, each tab = inputs card + results card (side by side on wide screens, stacked on phones). */
+:root{
+  --bg:#eef1f3; --surface:#ffffff; --ink:#15202a; --muted:#5d6b78; --line:#d6dde3;
+  --accent:#b5602a; --accent-ink:#ffffff; --soft:#f6efe9;
+  --ok:#1d8656; --warn:#a86d12; --bad:#c2352c;
+  --f-body:"IBM Plex Sans Arabic",Tahoma,"Segoe UI",sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f151b; --surface:#172029; --ink:#e5ebf0; --muted:#94a3b1; --line:#2b3844;
+  --accent:#e0874c; --accent-ink:#1a1006; --soft:#2a2119;
+  --ok:#3fbf83; --warn:#e0a93f; --bad:#f06b60; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0f151b; --surface:#172029; --ink:#e5ebf0; --muted:#94a3b1; --line:#2b3844;
+  --accent:#e0874c; --accent-ink:#1a1006; --soft:#2a2119;
+  --ok:#3fbf83; --warn:#e0a93f; --bad:#f06b60; color-scheme:dark;}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55}
+header{padding:14px 16px 6px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;max-width:1180px;margin:0 auto}
+h1{font-size:20px;margin:0;font-weight:700;text-wrap:balance}
+h1 small{display:block;font-size:12px;font-weight:500;color:var(--muted)}
+.profile{display:flex;gap:6px;align-items:center;font-size:13px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:transparent;color:var(--ink);font:inherit;font-size:13px;padding:7px 12px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);font-weight:600}
+nav{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+nav .rail{display:flex;gap:4px;overflow-x:auto;padding:6px 12px;max-width:1180px;margin:0 auto;scrollbar-width:none}
+nav a{flex:0 0 auto;text-decoration:none;color:var(--muted);font-weight:600;font-size:14px;padding:8px 12px;border-radius:9px;white-space:nowrap}
+nav a[aria-current="page"]{background:var(--surface);color:var(--accent);box-shadow:0 1px 0 var(--line)}
+main{max-width:1180px;margin:0 auto;padding:14px 16px 40px}
+.panel{display:none}
+.panel.on{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:820px){.panel.on{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px}
+.card h2{font-size:16px;margin:0 0 10px;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.card h3{font-size:13px;color:var(--muted);margin:14px 0 6px;font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.grid.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:420px){.grid.g3{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.f{display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--muted);min-width:0}
+.f.full{grid-column:1/-1}
+input,select{font:inherit;font-size:15px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 9px;width:100%;min-width:0}
+input[type=number]{font-family:var(--f-num);direction:ltr;text-align:right}
+input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.hide{display:none!important}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:10px}
+.tile{border:1px solid var(--line);border-radius:11px;padding:9px 10px;background:var(--bg)}
+.tile.main{background:var(--soft);border-color:var(--accent)}
+.tile .k{font-size:12px;color:var(--muted)}
+.tile .v{font-family:var(--f-num);font-size:21px;font-weight:600;direction:ltr;text-align:right;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.tile .v{unicode-bidi:plaintext}
+.tile .v small{font-size:12px;color:var(--muted);font-weight:500}
+.kv{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:13.5px;border-top:1px solid var(--line);padding-top:8px}
+.kv span:nth-child(even){font-family:var(--f-num);direction:ltr;text-align:left;font-variant-numeric:tabular-nums}
+.pills{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.pill{font-size:12.5px;font-weight:600;padding:4px 10px;border-radius:99px;border:1px solid currentColor}
+.pill.ok{color:var(--ok)}.pill.bad{color:var(--bad)}.pill.warn{color:var(--warn)}
+.note{font-size:12.5px;color:var(--muted);margin:8px 0 0}
+.note b{color:var(--ink)}
+.btn{font:inherit;font-size:13px;font-weight:600;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:9px;padding:6px 11px;cursor:pointer}
+.btn.acc{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+.tw{overflow-x:auto;margin-top:6px}
+th,td{padding:5px 6px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap}
+th{color:var(--muted);font-weight:600;font-size:12px}
+td.n{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+tr.sel td{background:var(--soft);font-weight:600}
+.row{display:grid;grid-template-columns:1.4fr 1fr 0.7fr auto;gap:6px;align-items:end;margin-bottom:6px}
+.row.ld{grid-template-columns:1.6fr 0.9fr auto}
+.x{border:0;background:transparent;color:var(--bad);font-size:20px;cursor:pointer;padding:4px 6px}
+.bar{height:10px;border-radius:99px;background:var(--bg);border:1px solid var(--line);overflow:hidden;margin:6px 0 2px}
+.bar i{display:block;height:100%;background:var(--ok)}
+.refs li{margin-bottom:8px;font-size:13.5px}
+.refs a{color:var(--accent)}
+.span2{grid-column:1/-1}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <h1>حاسبات المصري للكهرباء<small>كتالوج السويدي · SEC DPS · الكود المصري</small></h1>
+  <div class="profile"><span>الكود:</span>
+    <div class="seg" role="group" aria-label="الكود">
+      <button id="p_sa" type="button" aria-pressed="true">السعودية</button>
+      <button id="p_eg" type="button" aria-pressed="false">مصر</button>
+    </div>
+  </div>
+</header>
+<nav><div class="rail">
+  <a href="#cable">الكابل والقاطع</a>
+  <a href="#fill">ملء المواسير</a>
+  <a href="#load">تقدير الأحمال</a>
+  <a href="#vdrop">هبوط الجهد</a>
+  <a href="#short">القصر</a>
+  <a href="#refs">المراجع</a>
+</div></nav>
+
+<main>
+<!-- ================= CABLE + BREAKER ================= -->
+<section class="panel" id="v-cable">
+  <div class="card">
+    <h2>بيانات الحمل والكابل</h2>
+    <div class="grid">
+      <label class="f">طريقة إدخال الحمل<select id="c_mode"><option value="kW">kW</option><option value="kVA">kVA</option><option value="A">أمبير</option></select></label>
+      <label class="f">قيمة الحمل<input id="c_p" type="number" step="any" value="120"></label>
+      <label class="f">الأطوار<select id="c_ph"><option value="3">3 فاز</option><option value="1">1 فاز</option></select></label>
+      <label class="f">جهد النظام<select id="c_v" class="sysv"></select></label>
+      <label class="f">معامل القدرة PF<input id="c_pf" type="number" step="0.01" value="0.85"></label>
+      <label class="f">الكفاءة % (للـ kW)<input id="c_eff" type="number" step="any" value="100"></label>
+    </div>
+    <h3>الكابل وطريقة التمديد</h3>
+    <div class="grid">
+      <label class="f full">نوع الكابل (السويدي 0.6/1kV)<select id="c_type" class="ctype"></select></label>
+      <label class="f">طريقة التمديد<select id="c_inst"><option value="ground">مدفون مباشرة</option><option value="duct">داخل ducts مدفونة</option><option value="air">في الهواء / تراي</option></select></label>
+      <label class="f">الطول (م)<input id="c_len" type="number" step="any" value="80"></label>
+      <label class="f g-air">حرارة الهواء °C<input id="c_tair" type="number" step="any" value="50"></label>
+      <label class="f g-gnd">حرارة التربة °C<input id="c_tgnd" type="number" step="any" value="35"></label>
+      <label class="f g-gnd">عمق الدفن (م)<select id="c_depth"><option>0.5</option><option>0.6</option><option selected>0.8</option><option>1.0</option><option>1.25</option><option>1.5</option><option>2.0</option></select></label>
+      <label class="f g-gnd">مقاومة التربة الحرارية K·m/W<select id="c_soil"><option>0.8</option><option>0.9</option><option>1.0</option><option>1.2</option><option selected>1.5</option><option>2.0</option><option>2.5</option><option>3.0</option></select></label>
+      <label class="f">عدد الدوائر المتجاورة<input id="c_n" type="number" step="1" min="1" value="1"></label>
+      <label class="f">ترتيب التجميع<select id="c_arr"></select></label>
+      <label class="f g-air">عدد طبقات التراي<select id="c_trays"><option>1</option><option>2</option><option>3</option></select></label>
+      <label class="f">معامل إضافي<input id="c_extra" type="number" step="0.01" value="1"></label>
+    </div>
+    <h3>حدود التصميم</h3>
+    <div class="grid">
+      <label class="f">أقصى هبوط جهد %<input id="c_vdl" type="number" step="0.1" value="5"></label>
+      <label class="f">أكبر مقطع للكابل الواحد<select id="c_maxs"></select></label>
+      <label class="f">أقصى عدد كابلات بالتوازي<select id="c_maxp"><option>1</option><option>2</option><option>3</option><option selected>4</option><option>6</option><option>8</option></select></label>
+    </div>
+  </div>
+  <div class="card">
+    <h2>النتيجة <button class="btn copy" type="button" data-src="o_cable">نسخ</button></h2>
+    <div id="o_cable"></div>
+  </div>
+</section>
+
+<!-- ================= FILL ================= -->
+<section class="panel" id="v-fill">
+  <div class="card">
+    <h2>الكابلات داخل المسار</h2>
+    <div id="f_rows"></div>
+    <button class="btn" id="f_add" type="button">+ إضافة كابل</button>
+    <h3>المسار</h3>
+    <div class="grid">
+      <label class="f full">نوع المسار<select id="f_kind">
+        <option value="pvc">ماسورة PVC (متري)</option>
+        <option value="emt">ماسورة EMT / حديد (بوصة)</option>
+        <option value="tray">تراي كابلات</option>
+        <option value="trunk">ترنك (Trunking)</option></select></label>
+      <label class="f g-cond">مقاس الماسورة للفحص<select id="f_size"></select></label>
+      <label class="f g-cond">قطر داخلي يدوي (مم) — اختياري<input id="f_id" type="number" step="any" placeholder="من الجدول"></label>
+      <label class="f g-box">العرض (مم)<input id="f_w" type="number" step="any" value="300"></label>
+      <label class="f g-box">العمق المفيد (مم)<input id="f_h" type="number" step="any" value="100"></label>
+      <label class="f">حد الملء المسموح %<input id="f_lim" type="number" step="any" placeholder="تلقائي"></label>
+    </div>
+  </div>
+  <div class="card">
+    <h2>النتيجة <button class="btn copy" type="button" data-src="o_fill">نسخ</button></h2>
+    <div id="o_fill"></div>
+  </div>
+</section>
+
+<!-- ================= LOAD ================= -->
+<section class="panel" id="v-load">
+  <div class="card">
+    <h2>المساحات</h2>
+    <div id="l_rows"></div>
+    <button class="btn" id="l_add" type="button">+ إضافة مساحة</button>
+    <h3>إعدادات</h3>
+    <div class="grid">
+      <label class="f g-sa">التكييف<select id="l_ac"><option value="ac">ذروة صيف مع تكييف</option><option value="noac">بدون تكييف (District cooling)</option><option value="winter">ذروة شتاء مع تدفئة</option></select></label>
+      <label class="f g-sa">عدد العدادات (لمعامل التزامن CF)<input id="l_meters" type="number" step="1" min="1" value="1"></label>
+      <label class="f">جهد التغذية<select id="l_v" class="sysv"></select></label>
+      <label class="f">احتياطي مستقبلي %<input id="l_spare" type="number" step="any" value="20"></label>
+      <label class="f">أقصى تحميل للمحول %<input id="l_tload" type="number" step="any" value="80"></label>
+    </div>
+  </div>
+  <div class="card">
+    <h2>النتيجة <button class="btn copy" type="button" data-src="o_load">نسخ</button></h2>
+    <div id="o_load"></div>
+  </div>
+</section>
+
+<!-- ================= VOLTAGE DROP ================= -->
+<section class="panel" id="v-vdrop">
+  <div class="card">
+    <h2>بيانات الدائرة</h2>
+    <div class="grid">
+      <label class="f full">نوع الكابل<select id="v_type" class="ctype"></select></label>
+      <label class="f">المقطع mm²<select id="v_s"></select></label>
+      <label class="f">عدد الكابلات بالتوازي<input id="v_p" type="number" step="1" min="1" value="1"></label>
+      <label class="f">الطول (م)<input id="v_len" type="number" step="any" value="120"></label>
+      <label class="f">التيار (A)<input id="v_i" type="number" step="any" value="150"></label>
+      <label class="f">الأطوار<select id="v_ph"><option value="3">3 فاز</option><option value="1">1 فاز</option></select></label>
+      <label class="f">جهد النظام<select id="v_v" class="sysv"></select></label>
+      <label class="f">معامل القدرة PF<input id="v_pf" type="number" step="0.01" value="0.85"></label>
+      <label class="f">الحد المسموح %<input id="v_lim" type="number" step="0.1" value="5"></label>
+      <label class="f">هبوط سابق من المنبع %<input id="v_up" type="number" step="0.1" value="0"></label>
+    </div>
+  </div>
+  <div class="card">
+    <h2>النتيجة <button class="btn copy" type="button" data-src="o_vd">نسخ</button></h2>
+    <div id="o_vd"></div>
+  </div>
+</section>
+
+<!-- ================= SHORT CIRCUIT ================= -->
+<section class="panel" id="v-short">
+  <div class="card">
+    <h2>المصدر والمحول</h2>
+    <div class="grid">
+      <label class="f">قدرة القصر للشبكة MVA<input id="s_ssc" type="number" step="any" value="500"></label>
+      <label class="f">شبكة لانهائية؟<select id="s_inf"><option value="0">لا</option><option value="1">نعم</option></select></label>
+      <label class="f">قدرة المحول kVA<select id="s_kva"></select></label>
+      <label class="f">جهد المعاوقة uk %<input id="s_uk" type="number" step="any" value="6"></label>
+      <label class="f">فقد النحاس Pk (kW)<input id="s_pk" type="number" step="any" value="10.5"></label>
+      <label class="f">جهد الثانوي<select id="s_v" class="sysv"></select></label>
+    </div>
+    <h3>الكابل حتى نقطة القصر</h3>
+    <div class="grid">
+      <label class="f full">نوع الكابل<select id="s_type" class="ctype"></select></label>
+      <label class="f">المقطع mm²<select id="s_s"></select></label>
+      <label class="f">عدد الكابلات بالتوازي<input id="s_p" type="number" step="1" min="1" value="4"></label>
+      <label class="f">الطول (م)<input id="s_len" type="number" step="any" value="30"></label>
+      <label class="f">زمن فصل الحماية t (ث)<input id="s_t" type="number" step="any" value="0.4"></label>
+    </div>
+  </div>
+  <div class="card">
+    <h2>النتيجة <button class="btn copy" type="button" data-src="o_sc">نسخ</button></h2>
+    <div id="o_sc"></div>
+  </div>
+</section>
+
+<!-- ================= REFERENCES ================= -->
+<section class="panel" id="v-refs">
+  <div class="card span2">
+    <h2>المراجع وفروض الحساب</h2>
+    <ul class="refs">
+      <li><b>السويدي — Power Cables Catalogue:</b> مقاطع ومقاومات DC عند 20°C و AC عند درجة التشغيل، وتيارات الكابلات (مدفون / duct / هواء) والأقطار الخارجية لكابلات 0.6/1kV: Cu/XLPE/PVC و Cu/PVC/PVC و Al/XLPE/PVC (4 قلوب) و Cu/XLPE/PVC مفرد Trefoil. ظروف الكتالوج: هواء 30°C، تربة 20°C، مقاومة حرارية 1.0 K·m/W، عمق 0.5 م. ومنه أيضاً معاملات التخفيض (حرارة الهواء والتربة، العمق، مقاومة التربة، التجميع في التربة والتراي) وجدول هبوط الجهد للكابلات المفردة الذي استُخرجت منه المفاعلة. <a href="https://elsewedyelectric.com/media/2458/energy-cables-catalogue.pdf">رابط الكتالوج</a></li>
+      <li><b>SEC — Distribution Planning Standard (Dec. 2022, Rev. 01):</b> كثافات الأحمال VA/m² للفئات C1–C10، ومعاملات الطلب C1–C17، ومعامل التزامن حسب عدد العدادات، وحد هبوط الجهد الكلي 5% من المحطة إلى نقطة العميل، ومقاسات المحطات 500/1000/1500 kVA. <a href="https://pdfcoffee.com/utility-sec-distribution-planning-standard-pdf-free.html">نسخة من المعيار</a></li>
+      <li><b>مصر — نسبة ملء المواسير 40%:</b> اللائحة التنفيذية لقانون البناء: ألا يزيد مجموع مساحة الموصلات داخل الماسورة عن 40% من مساحة مقطعها. <a href="https://buldings-world.blogspot.com/2010/09/4.html">المصدر</a></li>
+      <li><b>مصر — تقدير الأحمال لشركات التوزيع:</b> 8 kVA لكل 100 م² للسكني و 10 kVA لكل 100 م² للتجاري (ضوابط المحاسبة كما نشرها مصراوي، مايو 2026 — تحقق من شركة التوزيع التابع لها المشروع). <a href="https://www.masrawy.com/news/news_egypt/details/2026/5/10/2985674">الخبر</a></li>
+      <li><b>السعودية — ملء المواسير:</b> قاعدة NEC Chapter 9 Table 1 (موصل واحد 53%، اثنان 31%، أكثر من اثنين 40%) والأقطار الداخلية لمواسير EMT من NEC Chapter 9 Table 4.</li>
+      <li><b>القصر:</b> طريقة المعاوقات حسب IEC 60909 مبسطة (c = 1.05 للقيمة القصوى، 0.95 للدنيا؛ RQ = 0.1 XQ). ثوابت k للتحمل الحراري حسب IEC 60364-4-43: Cu/PVC 115، Cu/XLPE 143، Al/PVC 76، Al/XLPE 94.</li>
+      <li><b>الموصل الأرضي PE:</b> حسب IEC 60364-5-54 (S ≤ 16 ⇒ S، حتى 35 ⇒ 16، أكبر ⇒ S/2).</li>
+      <li><b>تجميع الكابلات داخل ducts:</b> لا يعطيه كتالوج السويدي؛ مأخوذ من IEC 60364-5-52 للكابلات متعددة القلوب في ducts مدفونة.</li>
+      <li><b>أقطار أسلاك المواسير H07V-R:</b> الحد الأعلى للقطر حسب EN 50525-2-31 (قيم استرشادية — راجع ورقة بيانات السويدي للأسلاك).</li>
+    </ul>
+    <p class="note"><b>تنبيه:</b> الأرقام الافتراضية (حرارة الهواء والتربة، uk، Pk، أقطار المواسير الداخلية) قابلة للتعديل. مواصفات المشروع ومعايير التصميم المعتمدة لها الأولوية دائماً على أي قيمة هنا.</p>
+  </div>
+</section>
+</main>
+
+<script>
+"use strict";
+/* ---------------- DATA: Elsewedy Power Cables catalogue (0.6/1 kV) ----------------
+   row = [S mm², Rdc20 Ω/km, Rac(op) Ω/km, I ground A, I duct A, I air A, OD mm] */
+const CABLES = {
+  cuX4:{label:"Cu/XLPE/PVC — 4 قلوب",mat:"Cu",ins:"XLPE",core:"multi",rows:[
+   [1.5,12.1,14.6,32,26,24,10.3],[2.5,7.41,8.87,43,33,35,11.4],[4,4.61,5.54,55,40,45,12.6],[6,3.08,3.69,70,50,55,14],
+   [10,1.83,2.19,92,67,75,15.5],[16,1.15,1.39,118,84,98,17.9],[25,0.727,0.9273,155,112,131,22.1],[35,0.524,0.6686,186,136,161,24.8],
+   [50,0.387,0.494,225,162,197,26.3],[70,0.268,0.3425,276,204,249,30.4],[95,0.193,0.2471,330,243,303,33.1],[120,0.153,0.1964,374,282,352,37.2],
+   [150,0.124,0.1597,421,321,405,41.7],[185,0.0991,0.1284,475,369,467,46.7],[240,0.0754,0.0988,551,431,554,52.5],[300,0.0601,0.0799,621,493,636,58.1],
+   [400,0.047,0.0641,706,571,741,66.7],[500,0.0366,0.0518,797,653,851,74.2]]},
+  cuP4:{label:"Cu/PVC/PVC — 4 قلوب",mat:"Cu",ins:"PVC",core:"multi",rows:[
+   [1.5,12.1,14.6,28,22,21,10.8],[2.5,7.41,8.87,36,28,25,11.9],[4,4.61,5.54,46,36,36,14],[6,3.08,3.69,60,44,45,15.6],
+   [10,1.83,2.19,79,58,61,17],[16,1.15,1.39,99,73,83,19.6],[25,0.727,0.8702,131,96,105,23.5],[35,0.524,0.6274,158,116,129,26.2],
+   [50,0.387,0.4635,195,141,161,28.3],[70,0.268,0.3214,239,175,203,32.1],[95,0.193,0.2319,285,211,247,35.8],[120,0.153,0.1844,324,243,287,39.4],
+   [150,0.124,0.15,364,277,329,43.9],[185,0.0991,0.1206,411,316,379,48.9],[240,0.0754,0.0928,476,372,450,55.2],[300,0.0601,0.0752,537,425,516,61.3],
+   [400,0.047,0.0603,610,490,601,69.9],[500,0.0366,0.0489,689,561,690,77.4]]},
+  alX4:{label:"Al/XLPE/PVC — 4 قلوب",mat:"Al",ins:"XLPE",core:"multi",rows:[
+   [16,1.91,2.4489,93,66,76,18.5],[25,1.2,1.5387,120,87,101,22.1],[35,0.868,1.1131,144,105,125,24.8],[50,0.641,0.8221,175,126,153,26.3],
+   [70,0.443,0.5684,215,158,194,30.4],[95,0.32,0.4109,256,189,235,33.1],[120,0.253,0.3252,291,219,274,37.2],[150,0.206,0.2651,327,249,314,41.7],
+   [185,0.164,0.2115,370,287,364,46.7],[240,0.125,0.1619,430,337,432,52.5],[300,0.1,0.1302,486,386,498,58.1],[400,0.0778,0.1023,558,452,586,66.7],
+   [500,0.0605,0.0809,638,522,681,74.2]]},
+  cuX1:{label:"Cu/XLPE/PVC — مفرد Trefoil (3×1C)",mat:"Cu",ins:"XLPE",core:"single",rows:[
+   [4,4.61,5.54,60,42,44,6.5],[6,3.08,3.69,77,56,59,7],[10,1.83,2.19,105,72,75,7.7],[16,1.15,1.39,131,92,105,8.7],
+   [25,0.727,0.9272,168,118,134,10],[35,0.524,0.6685,201,143,166,11.1],[50,0.387,0.4939,239,172,204,12.6],[70,0.268,0.3425,292,214,260,14.4],
+   [95,0.193,0.2472,349,259,321,16.1],[120,0.153,0.1965,397,298,375,17.7],[150,0.124,0.1598,445,339,433,19.7],[185,0.0991,0.1285,503,390,503,21.8],
+   [240,0.0754,0.099,583,457,602,24.6],[300,0.0601,0.0803,658,524,699,27.4],[400,0.047,0.0645,744,603,815,30.6],[500,0.0366,0.0525,840,695,950,34.6],
+   [630,0.0283,0.0431,942,794,1096,38.9],[800,0.0221,0.0366,1042,894,1249,43.8],[1000,0.0176,0.0321,1142,999,1423,51.1]]}
+};
+/* Elsewedy Table 18 — single-core trefoil Cu, mV/A/m at pf 0.8 (used to back out reactance) */
+const VD1C = {4:7.770,6:5.226,10:3.124,16:2.008,25:1.297,35:0.971,50:0.732,70:0.534,95:0.408,120:0.349,150:0.294,185:0.252,240:0.211,300:0.187,400:0.164,500:0.148,630:0.134};
+const X_MULTI = 0.08; // Ω/km typical for multicore LV cable
+
+/* Elsewedy derating tables */
+const TT=[15,20,25,30,35,40,45,50,55];
+const AIRT={PVC:[1.21,1.15,1.07,1,0.92,0.84,0.75,0.66,0.55],XLPE:[1.15,1.10,1.05,1,0.95,0.90,0.84,0.78,0.72]};
+const GNDT={PVC:[1.05,1,0.95,0.89,0.84,0.77,0.71,0.63,0.55],XLPE:[1.04,1,0.96,0.93,0.89,0.85,0.80,0.76,0.71]};
+const DEP=[0.5,0.6,0.8,1.0,1.25,1.5,1.75,2.0,2.5,3.0];
+const DEPF={
+  gnd1:[1,.98,.96,.94,.92,.91,.90,.89,.88,.87], gndS:[1,.98,.94,.92,.90,.88,.86,.85,.83,.81], gndL:[1,.99,.96,.94,.92,.91,.90,.89,.88,.87],
+  dct1:[1,.98,.96,.94,.92,.91,.90,.89,.88,.87], dctS:[1,.98,.95,.92,.90,.89,.88,.87,.85,.84], dctL:[1,.99,.97,.96,.94,.93,.92,.91,.90,.89]};
+const SOILR=[0.8,0.9,1.0,1.2,1.5,2.0,2.5,3.0], SOILF=[1.10,1.05,1.00,0.92,0.83,0.73,0.66,0.60];
+/* grouping: index = number of circuits - 1 */
+const G_GND_MC={touch:[1,.81,.70,.63,.60,.56],s15:[1,.87,.78,.74,.70,.67],s30:[1,.91,.84,.81,.78,.76]};
+const G_GND_1C={touch:[1,.77,.66,.60,.56,.53],s15:[1,.82,.73,.68,.64,.61],s30:[1,.88,.80,.74,.72,.70]};
+const G_DCT={touch:[1,.85,.75,.70,.65,.60],s25:[1,.90,.85,.80,.80,.80]}; // IEC 60364-5-52 (not in Elsewedy)
+const G_AIR_MC={n:[1,2,3,4,6,9],
+  touch:{1:[1,.88,.82,.79,.76,.73],2:[1,.87,.80,.77,.73,.68],3:[1,.86,.79,.76,.71,.66]},
+  space:{1:[1,1,.98,.95,.91,.91],2:[1,.99,.96,.92,.87,.87],3:[1,.98,.95,.91,.85,.85]}};
+const G_AIR_1C={1:[1,.98,.96],2:[.97,.93,.89],3:[.96,.92,.86]};
+
+const BREAKERS=[6,10,16,20,25,32,40,50,63,80,100,125,160,200,250,320,400,500,630,800,1000,1250,1600,2000,2500,3200,4000,5000,6300];
+const ICU=[6,10,15,25,36,42,50,65,70,85,100,150];
+const TRAFO=[100,160,250,315,400,500,630,800,1000,1250,1500,1600,2000,2500];
+const PK={100:1.75,160:2.35,250:3.25,315:3.9,400:4.6,500:5.5,630:6.5,800:8.4,1000:10.5,1250:11,1500:13,1600:14,2000:18,2500:22};
+const KSC={Cu:{PVC:115,XLPE:143},Al:{PVC:76,XLPE:94}};
+const STD_S=[1.5,2.5,4,6,10,16,25,35,50,70,95,120,150,185,240,300,400,500,630,800,1000];
+
+/* Conduits */
+const COND={
+  pvc:[["16 مم (5/8″)",13.0],["20 مم (3/4″)",16.9],["25 مم (1″)",21.4],["32 مم (1¼″)",27.8],["40 مم (1½″)",35.4],["50 مم (2″)",44.6],["63 مم (2½″)",57.0]],
+  emt:[["1/2″",15.8],["3/4″",20.9],["1″",26.6],["1¼″",35.1],["1½″",40.9],["2″",52.5],["2½″",69.4],["3″",85.2],["4″",108.2]]};
+/* H07V-R 450/750 V building wire, max OD (EN 50525-2-31) */
+const WIRE={1.5:3.3,2.5:3.9,4:4.4,6:5.0,10:6.7,16:7.8,25:9.7,35:10.9,50:12.8,70:14.6,95:17.1,120:18.8,150:20.9,185:23.3,240:26.6};
+
+/* Load densities */
+const SEC_CAT=[ // [code, name, VA/m2 summer AC, no AC, winter, DF]
+  ["C1","سكني عادي (فلل/شقق)",116,null,null,0.5],
+  ["C2","محلات تجارية عادية",172,null,null,0.6],
+  ["C3","شقق مفروشة",140,64,116,0.6],
+  ["C4","فنادق",192,76,156,0.65],
+  ["C5","مولات",204,60,160,0.6],
+  ["C6","مطاعم",188,76,156,0.6],
+  ["C7","مكاتب",176,72,144,0.6],
+  ["C8","مدارس",144,64,120,0.7],
+  ["C9","مساجد",148,52,120,0.8],
+  ["C10","ميزانين فندق",80,32,64,0.65]];
+const SEC_CF={n:[1,2,3,4,5,10,15,20,30,40,50,60,80,99],f:[1,.723,.688,.668,.654,.619,.604,.595,.584,.578,.573,.570,.566,.563]};
+const EG_CAT=[["R","سكني (8 kVA/100 م²)",80,1],["C","تجاري / إداري (10 kVA/100 م²)",100,1]];
+
+/* ---------------- helpers ---------------- */
+const $=id=>document.getElementById(id);
+const num=id=>{const v=parseFloat($(id).value);return isFinite(v)?v:0;};
+const val=id=>$(id).value;
+const fmt=(x,d=1)=>isFinite(x)?Number(x).toLocaleString("en-US",{maximumFractionDigits:d,minimumFractionDigits:0}):"—";
+function interp(xs,ys,x){if(x<=xs[0])return ys[0];for(let i=1;i<xs.length;i++){if(x<=xs[i]){const t=(x-xs[i-1])/(xs[i]-xs[i-1]);return ys[i-1]+t*(ys[i]-ys[i-1]);}}return ys[ys.length-1];}
+function byCount(arr,n){n=Math.max(1,Math.round(n));return {f:arr[Math.min(n,arr.length)-1],clamped:n>arr.length};}
+const tile=(k,v,u="",main=false)=>`<div class="tile${main?" main":""}"><div class="k">${k}</div><div class="v">${v} <small>${u}</small></div></div>`;
+const pill=(ok,t,cls)=>`<span class="pill ${cls||(ok?"ok":"bad")}">${t}</span>`;
+const kv=rows=>`<div class="kv">${rows.map(r=>`<span>${r[0]}</span><span>${r[1]}</span>`).join("")}</div>`;
+let PROFILE="sa";
+function sysV(id){const [ll,ph]=val(id).split("/").map(Number);return {ll,ph};}
+function xOf(c,S){
+  if(c.core!=="single")return X_MULTI;
+  const row=c.rows.find(r=>r[0]===S); const vd=VD1C[S];
+  if(!vd||!row)return 0.07;
+  return Math.max(0.06,(vd/Math.sqrt(3)-0.8*row[2])/0.6);
+}
+function vdrop(I,Lm,R,X,p,ph,V,pf){
+  const s=Math.sqrt(Math.max(0,1-pf*pf)); const k=ph===3?Math.sqrt(3):2;
+  const dv=k*I*(Lm/1000)*(R*pf+X*s)/p; return {dv,pct:dv/V*100};
+}
+function peSize(S){let pe=S<=16?S:(S<=35?16:S/2);return STD_S.find(x=>x>=pe-1e-9)||pe;}
+function cableName(c,S,p){const one=c.core==="single"?`3×(1×${S})`:`4×${S}`;return (p>1?p+" × ":"")+"("+one+") mm² "+c.mat;}
+
+/* ---------------- CABLE + BREAKER ---------------- */
+function designCurrent(){
+  const {ll,ph:u0}=sysV("c_v"); const ph=+val("c_ph"); const pf=num("c_pf")||1; const eff=(num("c_eff")||100)/100;
+  const P=num("c_p"); const mode=val("c_mode"); let Ib;
+  const V=ph===3?ll:u0;
+  if(mode==="A")Ib=P; else if(mode==="kVA")Ib=P*1000/(ph===3?Math.sqrt(3)*ll:u0); else Ib=P*1000/((ph===3?Math.sqrt(3)*ll:u0)*pf*eff);
+  return {Ib,ph,V,pf,ll,u0};
+}
+function deratingFor(c,inst,S,nEff){
+  const parts=[]; let f=1, warn=[];
+  if(inst==="air"){
+    const ft=interp(TT,AIRT[c.ins],num("c_tair")); parts.push(["حرارة الهواء",ft]); f*=ft;
+    const trays=+val("c_trays"); let fg;
+    if(c.core==="single"){const t=G_AIR_1C[trays];fg=interp([1,2,3],t,Math.min(nEff,3)); if(nEff>3)warn.push("عدد الدوائر المفردة أكبر من جدول التراي (3)");}
+    else{const t=G_AIR_MC[val("c_arr")==="space"?"space":"touch"][trays];fg=interp(G_AIR_MC.n,t,Math.min(nEff,9)); if(nEff>9)warn.push("عدد الكابلات أكبر من جدول التراي (9)");}
+    parts.push(["التجميع",fg]); f*=fg;
+  }else{
+    const ft=interp(TT,GNDT[c.ins],num("c_tgnd")); parts.push(["حرارة التربة",ft]); f*=ft;
+    const d=parseFloat(val("c_depth")); const key=(inst==="duct"?"dct":"gnd")+(c.core==="single"?"1":(S<=185?"S":"L"));
+    const fd=interp(DEP,DEPF[key],d); parts.push(["عمق الدفن",fd]); f*=fd;
+    const fs=interp(SOILR,SOILF,parseFloat(val("c_soil"))); parts.push(["مقاومة التربة",fs]); f*=fs;
+    let tbl;
+    if(inst==="duct")tbl=G_DCT[val("c_arr")==="s25"?"s25":"touch"];
+    else tbl=(c.core==="single"?G_GND_1C:G_GND_MC)[["touch","s15","s30"].includes(val("c_arr"))?val("c_arr"):"touch"];
+    const g=byCount(tbl,nEff); if(g.clamped)warn.push("عدد الدوائر أكبر من الجدول (6) — استُخدم آخر معامل");
+    parts.push(["التجميع",g.f]); f*=g.f;
+  }
+  const ex=num("c_extra")||1; if(ex!==1){parts.push(["معامل إضافي",ex]);f*=ex;}
+  return {f,parts,warn};
+}
+function calcCable(){
+  const c=CABLES[val("c_type")]; const inst=val("c_inst"); const col=inst==="ground"?3:inst==="duct"?4:5;
+  const {Ib,ph,V,pf}=designCurrent(); const L=num("c_len"); const lim=num("c_vdl")||5;
+  const maxS=parseFloat(val("c_maxs"))||9999; const maxP=+val("c_maxp"); const n=Math.max(1,Math.round(num("c_n")));
+  const In=BREAKERS.find(b=>b>=Ib-1e-9);
+  if(!In||Ib<=0){$("o_cable").innerHTML=`<p class="note">أدخل حملاً صحيحاً. التيار أكبر من أكبر قاطع قياسي (6300A).</p>`;return;}
+  let pick=null;
+  outer: for(let p=1;p<=maxP;p++){
+    for(const r of c.rows){
+      const S=r[0]; if(S>maxS)break;
+      const d=deratingFor(c,inst,S,n+p-1); const Iz=r[col]*d.f*p;
+      const v=vdrop(Ib,L,r[2],xOf(c,S),p,ph,V,pf);
+      if(Iz>=In-1e-9 && v.pct<=lim+1e-9){pick={p,r,d,Iz,v};break outer;}
+    }
+  }
+  const brType=In<=63?"MCB":(In<=1600?"MCCB":"ACB");
+  const curve=In<=63?" (منحنى B للإنارة / C للقوى)":"";
+  let h=`<div class="tiles">${tile("تيار التصميم Ib",fmt(Ib,1),"A")}${tile("القاطع In",In,"A "+brType)}`;
+  if(!pick){
+    h+=`</div><div class="pills">${pill(false,"لا يوجد كابل مناسب ضمن الحدود")}</div><p class="note">زوّد أكبر مقطع أو عدد الكابلات بالتوازي، أو قلّل الطول.</p>`;
+    $("o_cable").innerHTML=h; return;
+  }
+  const {p,r,d,Iz,v}=pick; const S=r[0];
+  // smallest by ampacity only & by VD only (same p)
+  let byI=null,byV=null;
+  for(const rr of c.rows){ if(rr[0]>maxS)break; const dd=deratingFor(c,inst,rr[0],n+p-1);
+    if(!byI && rr[col]*dd.f*p>=In)byI=rr[0];
+    if(!byV && vdrop(Ib,L,rr[2],xOf(c,rr[0]),p,ph,V,pf).pct<=lim)byV=rr[0]; }
+  const pe=peSize(S*p);
+  h+=`${tile("الكابل المختار",cableName(c,S,p),"",true)}${tile("سعة الكابل بعد التخفيض Iz",fmt(Iz,0),"A")}</div>`;
+  h+=`<div class="pills">${pill(Ib<=In,"Ib ≤ In")}${pill(In<=Iz,"In ≤ Iz")}${pill(v.pct<=lim,"هبوط الجهد <bdi dir=\"ltr\">"+fmt(v.pct,2)+"% ≤ "+lim+"%</bdi>")}${d.warn.map(w=>pill(false,w,"warn")).join("")}</div>`;
+  h+=kv([
+    ["تيار الكتالوج للكابل الواحد ("+(inst==="ground"?"مدفون":inst==="duct"?"duct":"هواء")+")",r[col]+" A"],
+    ...d.parts.map(x=>[x[0],fmt(x[1],3)]),
+    ["معامل التخفيض الكلي",fmt(d.f,3)],
+    ["هبوط الجهد",fmt(v.dv,2)+" V ("+fmt(v.pct,2)+"%)"],
+    ["المقطع حسب التيار فقط",byI?byI+" mm²":"—"],
+    ["المقطع حسب هبوط الجهد فقط",byV?byV+" mm²":"—"],
+    ["موصل الأرضي PE (IEC 60364-5-54)",pe+" mm²"+(p>1?" (إجمالي)":"")],
+    ["القطر الخارجي للكابل",r[6]+" mm"],
+    ["نوع القاطع",brType+curve]
+  ]);
+  if(ph===1)h+=`<p class="note">الدائرة 1 فاز محسوبة بتيارات كابل 4 قلوب، وهي أقل من تيارات كابل قلبين، فالنتيجة في جانب الأمان.</p>`;
+  if(p>1)h+=`<p class="note">عند التوازي: عدد الدوائر في معامل التجميع = ${n} + ${p-1} كابل إضافي. استخدم نفس الطول والمقطع لكل الكابلات المتوازية.</p>`;
+  $("o_cable").innerHTML=h;
+}
+
+/* ---------------- FILL ---------------- */
+let FROWS=[{k:"wire",s:4,q:3},{k:"wire",s:2.5,q:3}];
+function fillOD(r){
+  if(r.k==="wire")return WIRE[r.s]||0;
+  if(r.k==="custom")return +r.od||0;
+  const row=CABLES[r.k].rows.find(x=>x[0]==r.s); return row?row[6]:0;
+}
+function sizesFor(k){return k==="wire"?Object.keys(WIRE).map(Number):k==="custom"?[]:CABLES[k].rows.map(r=>r[0]);}
+function renderFillRows(){
+  const kinds=[["wire","سلك H07V-R مفرد 450/750V"],...Object.entries(CABLES).map(([k,c])=>[k,c.label]),["custom","قطر يدوي"]];
+  $("f_rows").innerHTML=FROWS.map((r,i)=>{
+    const sz=sizesFor(r.k);
+    const sizeCtl=r.k==="custom"?`<label class="f">القطر (مم)<input type="number" step="any" data-i="${i}" data-f="od" value="${r.od||10}"></label>`
+      :`<label class="f">المقطع<select data-i="${i}" data-f="s">${sz.map(s=>`<option ${s==r.s?"selected":""}>${s}</option>`).join("")}</select></label>`;
+    return `<div class="row"><label class="f">النوع<select data-i="${i}" data-f="k">${kinds.map(([k,l])=>`<option value="${k}" ${k===r.k?"selected":""}>${l}</option>`).join("")}</select></label>${sizeCtl}<label class="f">العدد<input type="number" min="1" step="1" data-i="${i}" data-f="q" value="${r.q}"></label><button class="x" type="button" data-del="${i}" aria-label="حذف">×</button></div>`;
+  }).join("");
+}
+function fillLimit(count){
+  const man=parseFloat($("f_lim").value); if(isFinite(man)&&man>0)return {lim:man,rule:"حد يدوي"};
+  const k=val("f_kind");
+  if(k==="tray")return {lim:40,rule:"افتراضي للتراي"};
+  if(k==="trunk")return {lim:45,rule:"افتراضي للترنك (space factor 45%)"};
+  if(PROFILE==="eg")return {lim:40,rule:"اللائحة التنفيذية لقانون البناء المصري"};
+  return count===1?{lim:53,rule:"NEC Ch.9 — موصل واحد"}:count===2?{lim:31,rule:"NEC Ch.9 — موصلان"}:{lim:40,rule:"NEC Ch.9 — أكثر من موصلين"};
+}
+function calcFill(){
+  let area=0,count=0,maxOD=0;
+  FROWS.forEach(r=>{const d=fillOD(r);const q=Math.max(0,Math.round(+r.q||0));area+=q*Math.PI*d*d/4;count+=q;maxOD=Math.max(maxOD,d);});
+  const k=val("f_kind"); const {lim,rule}=fillLimit(count); let h="";
+  if(k==="pvc"||k==="emt"){
+    const list=COND[k]; const man=parseFloat($("f_id").value);
+    const sel=list[+val("f_size")]||list[0]; const id=isFinite(man)&&man>0?man:sel[1];
+    const fill=area/(Math.PI*id*id/4)*100;
+    const rec=list.find(c=>area/(Math.PI*c[1]*c[1]/4)*100<=lim && c[1]>maxOD*1.1);
+    h+=`<div class="tiles">${tile("نسبة الملء",fmt(fill,1),"%",true)}${tile("الحد المسموح",lim,"%")}${tile("مساحة الكابلات",fmt(area,0),"mm²")}${tile("أصغر ماسورة مناسبة",rec?rec[0]:"أكبر من الجدول","")}</div>`;
+    h+=`<div class="bar" role="img" aria-label="نسبة الملء"><i style="width:${Math.min(100,fill/lim*100)}%;background:${fill<=lim?"var(--ok)":"var(--bad)"}"></i></div>`;
+    h+=`<div class="pills">${pill(fill<=lim,fill<=lim?"الماسورة المختارة مقبولة":"الماسورة المختارة لا تكفي")}</div>`;
+    h+=`<div class="tw"><table><thead><tr><th>الماسورة</th><th>القطر الداخلي</th><th>الملء %</th><th></th></tr></thead><tbody>${list.map(c=>{const f=area/(Math.PI*c[1]*c[1]/4)*100;return `<tr class="${c===rec?"sel":""}"><td>${c[0]}</td><td class="n">${c[1]}</td><td class="n">${fmt(f,1)}</td><td>${f<=lim&&c[1]>maxOD*1.1?"✓":"✗"}</td></tr>`}).join("")}</tbody></table></div>`;
+    h+=kv([["عدد الموصلات",count],["القاعدة",rule]]);
+    h+=`<p class="note">الأقطار الداخلية استرشادية: PVC حسب المقاسات المترية الشائعة، EMT حسب NEC Ch.9 Table 4. أدخل القطر الداخلي من كتالوج المورد للدقة.</p>`;
+  }else{
+    const w=num("f_w"),hh=num("f_h"); const box=w*hh; const fill=box>0?area/box*100:0;
+    const wsCand=[50,75,100,150,200,300,400,450,500,600,750,900,1000]; const recW=wsCand.find(x=>area/(x*hh)*100<=lim);
+    h+=`<div class="tiles">${tile("نسبة الملء",fmt(fill,1),"%",true)}${tile("الحد المسموح",lim,"%")}${tile("مساحة الكابلات",fmt(area,0),"mm²")}${tile("أصغر عرض مناسب",recW?recW+" × "+hh:"—","mm")}</div>`;
+    h+=`<div class="bar"><i style="width:${Math.min(100,fill/lim*100)}%;background:${fill<=lim?"var(--ok)":"var(--bad)"}"></i></div>`;
+    h+=`<div class="pills">${pill(fill<=lim,fill<=lim?"المقاس المختار مقبول":"المقاس المختار لا يكفي")}${maxOD>hh?pill(false,"قطر أكبر كابل أكبر من العمق","warn"):""}</div>`;
+    h+=kv([["عدد الكابلات",count],["مساحة المسار",fmt(box,0)+" mm²"],["القاعدة",rule]]);
+    if(k==="tray")h+=`<p class="note">لكابلات القوى على التراي في طبقة واحدة يحكمها معامل التجميع أيضاً — راجعه في تبويب الكابل.</p>`;
+  }
+  $("o_fill").innerHTML=h;
+}
+
+/* ---------------- LOAD ---------------- */
+let LROWS={sa:[{c:"C7",a:2500},{c:"C2",a:600}],eg:[{c:"R",a:1800},{c:"C",a:400}]};
+function catList(){return PROFILE==="sa"?SEC_CAT.map(x=>[x[0],x[0]+" — "+x[1]]):[...EG_CAT.map(x=>[x[0],x[1]]),["X","كثافة يدوية VA/m²"]];}
+function renderLoadRows(){
+  const L=LROWS[PROFILE]; const cats=PROFILE==="sa"?[...catList(),["X","كثافة يدوية VA/m²"]]:catList();
+  $("l_rows").innerHTML=L.map((r,i)=>`<div class="row ld"><label class="f">الفئة<select data-li="${i}" data-f="c">${cats.map(([k,l])=>`<option value="${k}" ${k===r.c?"selected":""}>${l}</option>`).join("")}</select></label><label class="f">${r.c==="X"?"المساحة م² / VA/m²":"المساحة م²"}<span style="display:flex;gap:4px"><input type="number" step="any" data-li="${i}" data-f="a" value="${r.a}">${r.c==="X"?`<input type="number" step="any" data-li="${i}" data-f="d" value="${r.d||100}">`:""}</span></label><button class="x" type="button" data-ldel="${i}" aria-label="حذف">×</button></div>`).join("");
+}
+function calcLoad(){
+  const L=LROWS[PROFILE]; const mode=val("l_ac"); const {ll}=sysV("l_v"); let CL=0,DL=0; const lines=[]; let missing=false;
+  L.forEach(r=>{
+    let dens,df,name;
+    if(r.c==="X"){dens=+r.d||0;df=PROFILE==="sa"?0.6:1;name="كثافة يدوية";}
+    else if(PROFILE==="sa"){const x=SEC_CAT.find(z=>z[0]===r.c);name=x[0]+" "+x[1];dens=mode==="ac"?x[2]:mode==="noac"?x[3]:x[4];if(dens==null){dens=x[2];missing=true;}df=x[5];}
+    else{const x=EG_CAT.find(z=>z[0]===r.c);name=x[1];dens=x[2];df=x[3];}
+    const cl=(+r.a||0)*dens/1000; const dl=cl*df; CL+=cl; DL+=dl; lines.push([name,+r.a||0,dens,cl,df,dl]);
+  });
+  const meters=Math.max(1,Math.round(num("l_meters")));
+  const CF=PROFILE==="sa"?interp(SEC_CF.n,SEC_CF.f,Math.min(meters,99)):1;
+  const CDL=DL*CF; const design=CDL*(1+num("l_spare")/100); const I=CDL*1000/(Math.sqrt(3)*ll);
+  const tl=(num("l_tload")||100)/100;
+  const units=PROFILE==="sa"?[500,1000,1500]:TRAFO;
+  let tr=units.find(u=>u*tl>=design), ntr=1;
+  if(!tr){tr=units[units.length-1];ntr=Math.ceil(design/(tr*tl));}
+  let h=`<div class="tiles">${tile("الحمل المتصل CL",fmt(CL,1),"kVA")}${tile("حمل الطلب DL",fmt(DL,1),"kVA")}${tile(PROFILE==="sa"?"الحمل المتزامن CDL":"أقصى طلب",fmt(CDL,1),"kVA",true)}${tile("التيار عند "+ll+" V",fmt(I,0),"A")}</div>`;
+  h+=`<div class="pills">${pill(true,"المحول المقترح: "+(ntr>1?ntr+" × ":"")+tr+" kVA")}${missing?pill(false,"C1/C2 بدون قيمة لهذا الوضع — استُخدمت قيمة الصيف","warn"):""}</div>`;
+  h+=`<div class="tw"><table><thead><tr><th>الفئة</th><th>م²</th><th>VA/m²</th><th>CL kVA</th><th>DF</th><th>DL kVA</th></tr></thead><tbody>${lines.map(l=>`<tr><td>${l[0]}</td><td class="n">${fmt(l[1],0)}</td><td class="n">${l[2]}</td><td class="n">${fmt(l[3],1)}</td><td class="n">${l[4]}</td><td class="n">${fmt(l[5],1)}</td></tr>`).join("")}</tbody></table></div>`;
+  h+=kv([...(PROFILE==="sa"?[["معامل التزامن CF ("+meters+" عداد)",fmt(CF,3)]]:[]),["الحمل التصميمي مع الاحتياطي",fmt(design,1)+" kVA"],["أقصى تحميل للمحول",fmt(tl*100,0)+"%"]]);
+  h+=PROFILE==="sa"
+    ?`<p class="note">حسب SEC DPS (Dec 2022): CL = المساحة × الكثافة، DL = CL × DF، CDL = مجموع DL × CF. قيمة C1 و C2 هنا هي الكثافة المعلنة للمساحات خارج جدول الملحق 1 — للوحدات السكنية الصغيرة استخدم جدول المساحة/kVA في الملحق.</p>`
+    :`<p class="note">قيم مصر حسب ضوابط شركات التوزيع (8 و 10 kVA لكل 100 م²) وتمثل القدرة المطلوبة للتوصيل. أضف الأحمال الخاصة (مصاعد، مضخات، تكييف مركزي) كبنود يدوية.</p>`;
+  $("o_load").innerHTML=h;
+}
+
+/* ---------------- VOLTAGE DROP ---------------- */
+function calcVD(){
+  const c=CABLES[val("v_type")]; const S=parseFloat(val("v_s")); const r=c.rows.find(x=>x[0]===S)||c.rows[0];
+  const p=Math.max(1,Math.round(num("v_p"))); const L=num("v_len"); const I=num("v_i"); const ph=+val("v_ph"); const {ll,ph:u0}=sysV("v_v");
+  const V=ph===3?ll:u0; const pf=num("v_pf")||1; const lim=num("v_lim")||5; const up=num("v_up");
+  const X=xOf(c,r[0]); const v=vdrop(I,L,r[2],X,p,ph,V,pf); const tot=v.pct+up;
+  const per1=vdrop(I,1,r[2],X,p,ph,V,pf).pct; const Lmax=per1>0?Math.max(0,(lim-up)/per1):Infinity;
+  let h=`<div class="tiles">${tile("هبوط الجهد",fmt(v.dv,2),"V")}${tile("النسبة",fmt(v.pct,2),"%",true)}${tile("الإجمالي مع المنبع",fmt(tot,2),"%")}${tile("أقصى طول مسموح",fmt(Lmax,0),"m")}</div>`;
+  h+=`<div class="pills">${pill(tot<=lim,tot<=lim?"مقبول":"يتجاوز الحد")}</div>`;
+  h+=kv([["R عند درجة التشغيل (السويدي)",r[2]+" Ω/km"],["X",fmt(X,4)+" Ω/km"],["الجهد عند الحمل",fmt(V-v.dv,1)+" V"],["mV/A/m",fmt(v.dv/I/L*1000*p,3)+" (للكابل الواحد)"]]);
+  const rows=c.rows.map(rr=>{const q=vdrop(I,L,rr[2],xOf(c,rr[0]),p,ph,V,pf).pct+up;return `<tr class="${rr===r?"sel":""}"><td class="n">${rr[0]}</td><td class="n">${fmt(q,2)}</td><td>${q<=lim?"✓":"✗"}</td></tr>`;}).join("");
+  h+=`<h3>كل المقاطع لنفس الدائرة</h3><div class="tw"><table><thead><tr><th>mm²</th><th>إجمالي %</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  $("o_vd").innerHTML=h;
+}
+
+/* ---------------- SHORT CIRCUIT ---------------- */
+function scCore(o){ // pure function; o = {U,Ssc,inf,Sn,uk,Pk,R20,Rop,X,L,p,Rpe20,Rpeop}
+  const U=o.U, U0=U/Math.sqrt(3);
+  let RQ=0,XQ=0; if(!o.inf){const ZQ=1.1*U*U/(o.Ssc*1e6);XQ=0.995*ZQ;RQ=0.1*XQ;}
+  const ZT=o.uk/100*U*U/(o.Sn*1e3); const RT=o.Pk*1e3*U*U/Math.pow(o.Sn*1e3,2); const XT=Math.sqrt(Math.max(0,ZT*ZT-RT*RT));
+  const Rc=o.R20/1000*o.L/o.p, Xc=o.X/1000*o.L/o.p, Rch=o.Rop/1000*o.L/o.p;
+  const Rpe=o.Rpe20/1000*o.L, Rpeh=o.Rpeop/1000*o.L, Xpe=o.X/1000*o.L;
+  const ik3=(R,X)=>1.05*U/(Math.sqrt(3)*Math.hypot(R,X));
+  const Ik3T=ik3(RQ+RT,XQ+XT), Ik3=ik3(RQ+RT+Rc,XQ+XT+Xc);
+  const Ik1=1.05*U0/Math.hypot(2/3*RQ+RT+Rc+Rpe,2/3*XQ+XT+Xc+Xpe);
+  const Ik1min=0.95*U0/Math.hypot(2/3*RQ+RT+Rch+Rpeh,2/3*XQ+XT+Xc+Xpe);
+  const kap=(R,X)=>X>0?1.02+0.98*Math.exp(-3*R/X):1.02;
+  return {Ik3T,Ik3,Ik1,Ik1min,ipT:kap(RQ+RT,XQ+XT)*Math.SQRT2*Ik3T,ip:kap(RQ+RT+Rc,XQ+XT+Xc)*Math.SQRT2*Ik3,InT:o.Sn*1e3/(Math.sqrt(3)*U),RT,XT,RQ,XQ};
+}
+function calcSC(){
+  const c=CABLES[val("s_type")]; const S=parseFloat(val("s_s")); const r=c.rows.find(x=>x[0]===S)||c.rows[0];
+  const p=Math.max(1,Math.round(num("s_p"))); const {ll}=sysV("s_v");
+  const pe=peSize(r[0]*p); const peRow=(pe<4?CABLES.cuX4:CABLES.cuX1).rows.find(x=>x[0]>=pe)||CABLES.cuX1.rows[CABLES.cuX1.rows.length-1];
+  const peR20=peRow[1], peRop=peRow[2];
+  const o={U:ll,Ssc:num("s_ssc")||500,inf:val("s_inf")==="1",Sn:+val("s_kva"),uk:num("s_uk"),Pk:num("s_pk"),R20:r[1],Rop:r[2],X:xOf(c,r[0]),L:num("s_len"),p,Rpe20:peR20,Rpeop:peRop};
+  const z=scCore(o); const t=num("s_t")||1; const k=KSC[c.mat][c.ins];
+  const Smin=(z.Ik3T/p)*Math.sqrt(t)/k; const icu=ICU.find(x=>x*1000>=z.Ik3)||">150";
+  const icuT=ICU.find(x=>x*1000>=z.Ik3T)||">150";
+  const kA=x=>fmt(x/1000,2);
+  let h=`<div class="tiles">${tile("Ik3 عند أطراف المحول",kA(z.Ik3T),"kA")}${tile("Ik3 عند نهاية الكابل",kA(z.Ik3),"kA",true)}${tile("Ik1 أقصى (فاز-أرضي)",kA(z.Ik1),"kA")}${tile("Ik1 أدنى (للحماية)",kA(z.Ik1min),"kA")}</div>`;
+  h+=`<div class="pills">${pill(true,"Icu قاطع المحول ≥ "+icuT+" kA")}${pill(true,"Icu قاطع نهاية الكابل ≥ "+icu+" kA")}${pill(r[0]>=Smin,"تحمل الكابل الحراري: <bdi dir=\"ltr\">"+r[0]+" ≥ "+fmt(Smin,1)+" mm²</bdi>")}</div>`;
+  h+=kv([
+    ["تيار المحول المقنن",fmt(z.InT,0)+" A"],
+    ["ip قيمة الذروة عند المحول",kA(z.ipT)+" kA"],
+    ["ip عند نهاية الكابل",kA(z.ip)+" kA"],
+    ["RT / XT (mΩ)",fmt(z.RT*1000,2)+" / "+fmt(z.XT*1000,2)],
+    ["RQ / XQ (mΩ)",fmt(z.RQ*1000,3)+" / "+fmt(z.XQ*1000,3)],
+    ["الكابل",cableName(c,r[0],p)],
+    ["موصل PE المفترض",pe+" mm² Cu"],
+    ["ثابت k ("+c.mat+"/"+c.ins+")",k],
+    ["أقصى قاطع منحنى C يفصل لحظياً بـ Ik1 أدنى",fmt(z.Ik1min/10,0)+" A"]
+  ]);
+  h+=`<p class="note">IEC 60909 مبسطة: c = 1.05 للقيم القصوى و 0.95 للدنيا، المحول Dyn (Z0 ≈ ZT)، مقاومة الكابل عند 20°C للقيم القصوى وعند درجة التشغيل للدنيا. التحمل الحراري محسوب لقصر عند بداية الكابل لكل كابل من المتوازي.</p>`;
+  $("o_sc").innerHTML=h;
+}
+
+/* ---------------- UI wiring ---------------- */
+const VOPTS={sa:[["400/230","400/230 V"],["380/220","380/220 V"],["220/127","220/127 V"]],eg:[["380/220","380/220 V"],["400/230","400/230 V"]]};
+const DEFAULTS={sa:{c_tair:50,c_tgnd:35,c_vdl:5,v_lim:5,c_soil:"1.5"},eg:{c_tair:40,c_tgnd:30,c_vdl:5,v_lim:5,c_soil:"1.2"}};
+function fillSelect(el,opts,keep){const old=el.value;el.innerHTML=opts.map(([v,l])=>`<option value="${v}">${l}</option>`).join("");if(keep&&[...el.options].some(o=>o.value===old))el.value=old;}
+function setupStatic(){
+  document.querySelectorAll(".ctype").forEach(el=>fillSelect(el,Object.entries(CABLES).map(([k,c])=>[k,c.label])));
+  $("s_type").value="cuX1"; $("c_type").value="cuX4";
+  fillSelect($("s_kva"),TRAFO.map(x=>[x,x+" kVA"])); $("s_kva").value="1000";
+  refreshSizes();
+}
+function refreshSizes(){
+  const c=CABLES[val("c_type")]; const key=val("c_type");
+  fillSelect($("c_maxs"),c.rows.map(r=>[r[0],r[0]+" mm²"]),$("c_maxs").dataset.k===key);
+  if($("c_maxs").dataset.k!==key){$("c_maxs").value=c.core==="single"?"630":"300";$("c_maxs").dataset.k=key;}
+  const pickDef=(sel,ck,def)=>{const cc=CABLES[ck];const same=$(sel).dataset.k===ck;fillSelect($(sel),cc.rows.map(r=>[r[0],r[0]]),same);
+    if(!same){$(sel).value=cc.rows.some(r=>r[0]===def)?def:cc.rows[Math.floor(cc.rows.length/2)][0];$(sel).dataset.k=ck;}};
+  pickDef("v_s",val("v_type"),95); pickDef("s_s",val("s_type"),300);
+}
+function refreshInst(){
+  const inst=val("c_inst"); const c=CABLES[val("c_type")];
+  document.querySelectorAll(".g-air").forEach(e=>e.classList.toggle("hide",inst!=="air"));
+  document.querySelectorAll(".g-gnd").forEach(e=>e.classList.toggle("hide",inst==="air"));
+  const arr=inst==="air"?(c.core==="single"?[["trefoil","Trefoil على تراي مثقب"]]:[["touch","تراي مثقب — متلامسة"],["space","تراي مثقب — بمسافة"]])
+    :inst==="duct"?[["touch","ducts متلامسة"],["s25","ducts بمسافة 0.25 م"]]
+    :[["touch","متلامسة"],["s15","بمسافة 0.15 م"],["s30","بمسافة 0.30 م"]];
+  fillSelect($("c_arr"),arr,true);
+}
+function refreshFillKind(){
+  const k=val("f_kind"); const cond=k==="pvc"||k==="emt";
+  document.querySelectorAll(".g-cond").forEach(e=>e.classList.toggle("hide",!cond));
+  document.querySelectorAll(".g-box").forEach(e=>e.classList.toggle("hide",cond));
+  if(cond)fillSelect($("f_size"),COND[k].map((c,i)=>[i,c[0]+" — "+c[1]+" مم"]),true);
+  if(k==="trunk"&&!$("f_h").dataset.t){$("f_w").value=100;$("f_h").value=50;$("f_h").dataset.t=1;}
+}
+function setProfile(p,applyDefaults){
+  PROFILE=p; $("p_sa").setAttribute("aria-pressed",p==="sa"); $("p_eg").setAttribute("aria-pressed",p==="eg");
+  document.querySelectorAll(".sysv").forEach(el=>fillSelect(el,VOPTS[p],!applyDefaults));
+  if(applyDefaults){for(const [id,v] of Object.entries(DEFAULTS[p]))$(id).value=v;}
+  document.querySelectorAll(".g-sa").forEach(e=>e.classList.toggle("hide",p!=="sa"));
+  renderLoadRows();
+}
+function calcAll(){
+  try{calcCable();}catch(e){$("o_cable").textContent="خطأ: "+e.message;}
+  try{calcFill();}catch(e){$("o_fill").textContent="خطأ: "+e.message;}
+  try{calcLoad();}catch(e){$("o_load").textContent="خطأ: "+e.message;}
+  try{calcVD();}catch(e){$("o_vd").textContent="خطأ: "+e.message;}
+  try{calcSC();}catch(e){$("o_sc").textContent="خطأ: "+e.message;}
+}
+/* storage (per viewer, optional) */
+const STORE="elc-v1";
+function save(){try{const s={profile:PROFILE,f:FROWS,l:LROWS,v:{}};document.querySelectorAll("main input[id],main select[id]").forEach(e=>s.v[e.id]=e.value);localStorage.setItem(STORE,JSON.stringify(s));}catch(e){}}
+function load(){try{const s=JSON.parse(localStorage.getItem(STORE)||"null");if(!s)return false;PROFILE=s.profile||"sa";FROWS=s.f||FROWS;LROWS=s.l||LROWS;return s;}catch(e){return false;}}
+function restoreValues(s){if(!s)return;const order=["c_type","v_type","s_type","c_inst","f_kind"];order.forEach(id=>{if(s.v[id]!=null)$(id).value=s.v[id];});refreshSizes();refreshInst();refreshFillKind();
+  Object.entries(s.v).forEach(([id,v])=>{const e=$(id);if(e&&!order.includes(id))e.value=v;});}
+
+function route(){
+  const h=(location.hash||"#cable").slice(1); const ok=["cable","fill","load","vdrop","short","refs"].includes(h)?h:"cable";
+  document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("on",p.id==="v-"+ok));
+  document.querySelectorAll("nav a").forEach(a=>a.setAttribute("aria-current",a.getAttribute("href")==="#"+ok?"page":"false"));
+}
+document.addEventListener("input",e=>{
+  const t=e.target;
+  if(t.dataset.i!=null){const r=FROWS[+t.dataset.i];r[t.dataset.f]=t.dataset.f==="k"?t.value:(t.dataset.f==="s"?parseFloat(t.value):t.value);
+    if(t.dataset.f==="k"){const sz=sizesFor(t.value);r.s=sz.includes(r.s)?r.s:sz[0];renderFillRows();}}
+  if(t.dataset.li!=null){const r=LROWS[PROFILE][+t.dataset.li];r[t.dataset.f]=t.value;if(t.dataset.f==="c")renderLoadRows();}
+  if(["c_type","v_type","s_type"].includes(t.id))refreshSizes();
+  if(t.id==="c_type"||t.id==="c_inst")refreshInst();
+  if(t.id==="f_kind")refreshFillKind();
+  if(t.id==="s_kva"){$("s_pk").value=PK[+t.value]||"";$("s_uk").value=+t.value<=630?4:6;}
+  calcAll(); save();
+});
+document.addEventListener("click",e=>{
+  const t=e.target;
+  if(t.dataset.del!=null){FROWS.splice(+t.dataset.del,1);renderFillRows();calcAll();save();}
+  if(t.dataset.ldel!=null){LROWS[PROFILE].splice(+t.dataset.ldel,1);renderLoadRows();calcAll();save();}
+  if(t.id==="f_add"){FROWS.push({k:"wire",s:2.5,q:3});renderFillRows();calcAll();save();}
+  if(t.id==="l_add"){LROWS[PROFILE].push({c:PROFILE==="sa"?"C7":"R",a:500});renderLoadRows();calcAll();save();}
+  if(t.id==="p_sa"||t.id==="p_eg"){setProfile(t.id==="p_sa"?"sa":"eg",true);calcAll();save();}
+  if(t.classList.contains("copy")){
+    const txt=$(t.dataset.src).innerText; const done=()=>{t.textContent="تم النسخ";setTimeout(()=>t.textContent="نسخ",1500);};
+    try{ if(window.AndroidBridge&&AndroidBridge.copy){AndroidBridge.copy(txt);done();}
+         else navigator.clipboard.writeText(txt).then(done,()=>{t.textContent="تعذّر النسخ";}); }catch(err){t.textContent="تعذّر النسخ";}
+  }
+});
+window.addEventListener("hashchange",route);
+
+/* init */
+setupStatic();
+const saved=load();
+setProfile(PROFILE,!saved);
+refreshInst(); refreshFillKind(); renderFillRows();
+restoreValues(saved);
+route(); calcAll();
+</script>
+</body>
+</html>
