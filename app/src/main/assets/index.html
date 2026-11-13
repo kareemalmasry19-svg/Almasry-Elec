@@ -89,12 +89,13 @@ tr.sel td{background:var(--soft);font-weight:600}
 </head>
 <body>
 <header>
-  <h1>Spark<small>حاسبات الكهرباء · كتالوج السويدي · SEC DPS · الكود المصري</small></h1>
+  <h1>Spark<small>حاسبات الكهرباء · السويدي · بحره · IEC · SEC DPS · الكود المصري</small></h1>
   <div class="profile"><span>الكود:</span>
     <div class="seg" role="group" aria-label="الكود">
       <button id="p_sa" type="button" aria-pressed="true">السعودية</button>
       <button id="p_eg" type="button" aria-pressed="false">مصر</button>
     </div>
+    <button class="btn acc" id="x_export" type="button">تصدير Excel</button>
   </div>
 </header>
 <nav><div class="rail">
@@ -103,6 +104,7 @@ tr.sel td{background:var(--soft);font-weight:600}
   <a href="#load">تقدير الأحمال</a>
   <a href="#vdrop">هبوط الجهد</a>
   <a href="#short">القصر</a>
+  <a href="#bus">Busway</a>
   <a href="#refs">المراجع</a>
 </div></nav>
 
@@ -121,7 +123,7 @@ tr.sel td{background:var(--soft);font-weight:600}
     </div>
     <h3>الكابل وطريقة التمديد</h3>
     <div class="grid">
-      <label class="f full">نوع الكابل (السويدي 0.6/1kV)<select id="c_type" class="ctype"></select></label>
+      <label class="f full">نوع الكابل (0.6/1kV)<select id="c_type" class="ctype"></select></label>
       <label class="f">طريقة التمديد<select id="c_inst"><option value="ground">مدفون مباشرة</option><option value="duct">داخل ducts مدفونة</option><option value="air">في الهواء / تراي</option></select></label>
       <label class="f">الطول (م)<input id="c_len" type="number" step="any" value="80"></label>
       <label class="f g-air">حرارة الهواء °C<input id="c_tair" type="number" step="any" value="50"></label>
@@ -243,12 +245,38 @@ tr.sel td{background:var(--soft);font-weight:600}
   </div>
 </section>
 
+<!-- ================= BUSWAY ================= -->
+<section class="panel" id="v-bus">
+  <div class="card">
+    <h2>بيانات الحمل والـ Busway</h2>
+    <div class="grid">
+      <label class="f full">نوع الـ Busway<select id="b_type"></select></label>
+      <label class="f">طريقة إدخال الحمل<select id="b_mode"><option value="A">أمبير</option><option value="kVA">kVA</option><option value="kW">kW</option></select></label>
+      <label class="f">قيمة الحمل<input id="b_p" type="number" step="any" value="1800"></label>
+      <label class="f">جهد النظام<select id="b_v" class="sysv"></select></label>
+      <label class="f">معامل القدرة PF<input id="b_pf" type="number" step="0.01" value="0.85"></label>
+      <label class="f">الطول (م)<input id="b_len" type="number" step="any" value="60"></label>
+      <label class="f">توزيع الحمل<select id="b_dist"><option value="end">مركّز في النهاية (Feeder)</option><option value="dist">موزّع بانتظام (Riser / Plug-in)</option></select></label>
+      <label class="f">حرارة الوسط المحيط °C<input id="b_t" type="number" step="any" value="40"></label>
+      <label class="f">أقصى هبوط جهد %<input id="b_vdl" type="number" step="0.1" value="2.5"></label>
+      <label class="f">تيار القصر عند البداية Ik (kA)<input id="b_ik" type="number" step="any" value="50"></label>
+    </div>
+  </div>
+  <div class="card">
+    <h2>النتيجة <button class="btn copy" type="button" data-src="o_bus">نسخ</button></h2>
+    <div id="o_bus"></div>
+  </div>
+</section>
+
 <!-- ================= REFERENCES ================= -->
 <section class="panel" id="v-refs">
   <div class="card span2">
     <h2>المراجع وفروض الحساب</h2>
     <ul class="refs">
-      <li><b>السويدي — Power Cables Catalogue:</b> مقاطع ومقاومات DC عند 20°C و AC عند درجة التشغيل، وتيارات الكابلات (مدفون / duct / هواء) والأقطار الخارجية لكابلات 0.6/1kV: Cu/XLPE/PVC و Cu/PVC/PVC و Al/XLPE/PVC (4 قلوب) و Cu/XLPE/PVC مفرد Trefoil. ظروف الكتالوج: هواء 30°C، تربة 20°C، مقاومة حرارية 1.0 K·m/W، عمق 0.5 م. ومنه أيضاً معاملات التخفيض (حرارة الهواء والتربة، العمق، مقاومة التربة، التجميع في التربة والتراي) وجدول هبوط الجهد للكابلات المفردة الذي استُخرجت منه المفاعلة. <a href="https://elsewedyelectric.com/media/2458/energy-cables-catalogue.pdf">رابط الكتالوج</a></li>
+      <li><b>السويدي — Power Cables Catalogue (تمت مراجعة الأرقام على الكتالوج):</b> مقاطع ومقاومات DC عند 20°C و AC عند درجة التشغيل، وتيارات الكابلات (مدفون / duct / هواء) والأقطار الخارجية لكابلات 0.6/1kV: Cu/XLPE/PVC و Cu/PVC/PVC و Al/XLPE/PVC (4 قلوب) و Cu/XLPE/PVC مفرد Trefoil. ظروف الكتالوج: هواء 30°C، تربة 20°C، مقاومة حرارية 1.0 K·m/W، عمق 0.5 م. ومنه أيضاً معاملات التخفيض (حرارة الهواء والتربة، العمق، مقاومة التربة، التجميع في التربة والتراي) وجدول هبوط الجهد للكابلات المفردة الذي استُخرجت منه المفاعلة.</li>
+      <li><b>بحره — Low Voltage Power Cables Catalogue:</b> تيارات ومقاومات كابلات 0.6/1kV (جداول 18–23)، الأقطار الخارجية من صفحات الأبعاد، ومعاملات التخفيض (جداول 3–7 للدفن المباشر، 9–13 للـ ducts، 15–17 للهواء). ظروف الكتالوج: هواء 40°C، تربة 35°C، عمق 0.5 م، مقاومة حرارية 1.2 K·m/W. التيارات محسوبة حسب IEC 60287 و ERA 69-30 (أرضي) و BS 7671 (هواء). جدول 13 (تجميع متعدد القلوب في ducts) فيه مجموعتان بدون عنوان — استُخدمت المجموعة الأقل (الأكثر أماناً). للأنواع المسلحة: تيار الـ duct مأخوذ من عمود غير المسلح لأن الكتالوج لا يعطيه.</li>
+      <li><b>بحره — Building Wires:</b> أقطار أسلاك H07V2-K (مرن) و H07V2-U (مصمت) 450/750V لحساب ملء المواسير.</li>
+      <li><b>بحره TBS — Busway:</b> Compact Busway AE (نحاس، 630–6300A) و Super Compact SCB-AN (ألومنيوم، 630–6300A)، 4 موصلات: المقاومة عند الحرارة التشغيلية، المفاعلة، Icw، الأبعاد، وجدول اختيار المقنن حسب حرارة الوسط (35–60°C). هبوط الجهد: ΔV = k·√3·I·L·(R·cosφ + X·sinφ)، k = 1 لحمل مركّز في النهاية و 0.5 لحمل موزّع بانتظام (نفس معادلة الكتالوج).</li>
       <li><b>SEC — Distribution Planning Standard (Dec. 2022, Rev. 01):</b> كثافات الأحمال VA/m² للفئات C1–C10، ومعاملات الطلب C1–C17، ومعامل التزامن حسب عدد العدادات، وحد هبوط الجهد الكلي 5% من المحطة إلى نقطة العميل، ومقاسات المحطات 500/1000/1500 kVA. <a href="https://pdfcoffee.com/utility-sec-distribution-planning-standard-pdf-free.html">نسخة من المعيار</a></li>
       <li><b>مصر — نسبة ملء المواسير 40%:</b> اللائحة التنفيذية لقانون البناء: ألا يزيد مجموع مساحة الموصلات داخل الماسورة عن 40% من مساحة مقطعها. <a href="https://buldings-world.blogspot.com/2010/09/4.html">المصدر</a></li>
       <li><b>مصر — تقدير الأحمال لشركات التوزيع:</b> 8 kVA لكل 100 م² للسكني و 10 kVA لكل 100 م² للتجاري (ضوابط المحاسبة كما نشرها مصراوي، مايو 2026 — تحقق من شركة التوزيع التابع لها المشروع). <a href="https://www.masrawy.com/news/news_egypt/details/2026/5/10/2985674">الخبر</a></li>
@@ -263,6 +291,8 @@ tr.sel td{background:var(--soft);font-weight:600}
 </section>
 </main>
 
+<script src="data-bahra.js"></script>
+<script src="xlsx.js"></script>
 <script>
 "use strict";
 /* ---------------- DATA: Elsewedy Power Cables catalogue (0.6/1 kV) ----------------
@@ -292,6 +322,10 @@ const CABLES = {
    [240,0.0754,0.099,583,457,602,24.6],[300,0.0601,0.0803,658,524,699,27.4],[400,0.047,0.0645,744,603,815,30.6],[500,0.0366,0.0525,840,695,950,34.6],
    [630,0.0283,0.0431,942,794,1096,38.9],[800,0.0221,0.0366,1042,894,1249,43.8],[1000,0.0176,0.0321,1142,999,1423,51.1]]}
 };
+for(const k in CABLES){CABLES[k].mfr="elsewedy";CABLES[k].src="Elsewedy Power Cables catalogue";}
+Object.assign(CABLES,BAHRA_CABLES);
+const MFR={elsewedy:"السويدي",bahra:"بحره"};
+const BASE={elsewedy:"هواء 30°C، تربة 20°C، عمق 0.5 م، 1.0 K·m/W",bahra:"هواء 40°C، تربة 35°C، عمق 0.5 م، 1.2 K·m/W"};
 /* Elsewedy Table 18 — single-core trefoil Cu, mV/A/m at pf 0.8 (used to back out reactance) */
 const VD1C = {4:7.770,6:5.226,10:3.124,16:2.008,25:1.297,35:0.971,50:0.732,70:0.534,95:0.408,120:0.349,150:0.294,185:0.252,240:0.211,300:0.187,400:0.164,500:0.148,630:0.134};
 const X_MULTI = 0.08; // Ω/km typical for multicore LV cable
@@ -314,6 +348,29 @@ const G_AIR_MC={n:[1,2,3,4,6,9],
   space:{1:[1,1,.98,.95,.91,.91],2:[1,.99,.96,.92,.87,.87],3:[1,.98,.95,.91,.85,.85]}};
 const G_AIR_1C={1:[1,.98,.96],2:[.97,.93,.89],3:[.96,.92,.86]};
 
+/* Bahra LV catalogue, tables 3-17. Base: air 40°C, ground 35°C, depth 0.5 m, soil 1.2 K·m/W */
+const BAHRA={
+  airT:[25,30,35,40,45,50,55,60], air:{PVC:[1.18,1.15,1.08,1,.90,.82,.70,.59],XLPE:[1.12,1.10,1.055,1,.96,.90,.835,.78]},   // T15
+  gndT:[15,20,25,30,35,40,45,50,55], gnd:{PVC:[1.18,1.15,1.1,1.04,1,.95,.88,.83,.77],XLPE:[1.16,1.13,1.09,1.03,1,.95,.89,.84,.79]}, // T3 = T9
+  dep:[0.5,0.6,0.8,1,1.25,1.5,1.75,2,2.5], depG:{s:[1,.99,.97,.95,.94,.93,.92,.91,.90],m:[1,.98,.96,.93,.92,.90,.89,.88,.87],l:[1,.97,.94,.92,.89,.87,.86,.85,.84]}, // T4: ≤70, 95–240, ≥300
+  depD:[0.5,0.6,0.8,1,1.25,1.5,1.75,2,2.5,3], depD1:[1,.98,.95,.93,.91,.89,.88,.87,.86,.85], depDM:[1,.99,.98,.96,.95,.94,.94,.93,.92,.91], // T11
+  soilR:[0.8,0.9,1.0,1.2,1.5,2,2.5,3], // 1.2 = catalogue base (factor 1)
+  soilG:{single:[[150,[1.16,1.12,1.07,1,.91,.81,.73,.66]],[1e9,[1.17,1.12,1.07,1,.91,.80,.73,.66]]],
+         multi:[[16,[1.12,1.08,1.05,1,.93,.84,.77,.72]],[150,[1.14,1.10,1.06,1,.92,.82,.75,.69]],[1e9,[1.15,1.10,1.07,1,.92,.81,.74,.67]]]}, // T5
+  soilD:{single:[[150,[1.10,1.07,1.04,1,.94,.86,.80,.76]],[300,[1.11,1.08,1.05,1,.93,.85,.79,.75]],[1e9,[1.12,1.08,1.05,1,.93,.84,.78,.74]]],
+         multi:[[16,[1.04,1.03,1.02,1,.97,.92,.88,.86]],[150,[1.06,1.04,1.03,1,.95,.90,.85,.81]],[1e9,[1.07,1.05,1.03,1,.95,.88,.83,.78]]]}, // T10
+  gG1:{touch:[1,.78,.66,.61,.56,.53],s15:[1,.83,.73,.68,.64,.61],s30:[1,.88,.79,.73,.73,.71]}, // T6 (trefoil)
+  gGM:{touch:[1,.81,.70,.63,.59,.55],s15:[1,.87,.78,.74,.70,.68],s30:[1,.91,.84,.81,.78,.77]}, // T7
+  gD1:{touch:[1,.87,.78,.74,.70,.69],s45:[1,.91,.84,.81,.79,.78]},                             // T12
+  gDM:{touch:[1,.88,.80,.76,.72,.69],s30:[1,.91,.85,.81,.78,.76]}                              // T13, lower (conservative) block
+};
+/* Bahra TBS: "rating to be used in case of different ambient" (≤40°C: nominal). Index = column of BUSWAY[..].In */
+const BUS_AMB={
+  tbs_cu:{45:[630,800,1000,1250,2000,2500,3200,4000,5000,6300,null],50:[800,800,1000,1600,2000,2500,3200,4000,5000,6300,null],
+          55:[800,800,1000,1600,2000,2500,3200,4000,5000,6300,null],60:[800,800,1250,1600,2500,3200,4000,5000,5000,null,null]},
+  tbs_al:{45:[630,800,1000,1250,1600,2000,2750,2750,3600,4000,4000,5000,null],50:[630,800,1000,1250,1600,2000,2750,2750,3600,4000,4000,5000,null],
+          55:[800,1000,1250,1600,2000,2500,3200,3200,4000,5000,5000,6300,null],60:[800,1000,1250,1600,2000,2500,3200,3600,4000,5000,5000,6300,null]}};
+
 const BREAKERS=[6,10,16,20,25,32,40,50,63,80,100,125,160,200,250,320,400,500,630,800,1000,1250,1600,2000,2500,3200,4000,5000,6300];
 const ICU=[6,10,15,25,36,42,50,65,70,85,100,150];
 const TRAFO=[100,160,250,315,400,500,630,800,1000,1250,1500,1600,2000,2500];
@@ -326,6 +383,10 @@ const COND={
   pvc:[["16 مم (5/8″)",13.0],["20 مم (3/4″)",16.9],["25 مم (1″)",21.4],["32 مم (1¼″)",27.8],["40 مم (1½″)",35.4],["50 مم (2″)",44.6],["63 مم (2½″)",57.0]],
   emt:[["1/2″",15.8],["3/4″",20.9],["1″",26.6],["1¼″",35.1],["1½″",40.9],["2″",52.5],["2½″",69.4],["3″",85.2],["4″",108.2]]};
 /* H07V-R 450/750 V building wire, max OD (EN 50525-2-31) */
+/* Bahra Building Wires catalogue: overall diameter, H07V2-K flexible and H07V2-U solid (450/750 V) */
+const WIRESETS={
+  bwK:{label:"بحره — سلك H07V2-K مرن",od:{1:2.2,1.5:3.0,2.5:3.65,4:4.2,6:4.8,10:6.15,16:7.3,25:8.9,35:10,50:12,70:14}},
+  bwU:{label:"بحره — سلك H07V2-U مصمت",od:{1.5:2.79,2.5:3.38,4:3.85,6:4.36,10:5.57}}};
 const WIRE={1.5:3.3,2.5:3.9,4:4.4,6:5.0,10:6.7,16:7.8,25:9.7,35:10.9,50:12.8,70:14.6,95:17.1,120:18.8,150:20.9,185:23.3,240:26.6};
 
 /* Load densities */
@@ -376,7 +437,32 @@ function designCurrent(){
   if(mode==="A")Ib=P; else if(mode==="kVA")Ib=P*1000/(ph===3?Math.sqrt(3)*ll:u0); else Ib=P*1000/((ph===3?Math.sqrt(3)*ll:u0)*pf*eff);
   return {Ib,ph,V,pf,ll,u0};
 }
+function bySize(tbl,S){return (tbl.find(x=>S<=x[0])||tbl[tbl.length-1])[1];}
+function deratingBahra(c,inst,S,nEff){
+  const B=BAHRA, parts=[], warn=[]; let f=1; const one=c.core==="single";
+  const add=(n,v)=>{parts.push([n,v]);f*=v;};
+  if(inst==="air"){
+    add("حرارة الهواء",interp(B.airT,B.air[c.ins],num("c_tair")));
+    const trays=+val("c_trays"); let fg;
+    if(one){fg=interp([1,2,3],G_AIR_1C[trays],Math.min(nEff,3)); if(nEff>3)warn.push("عدد الدوائر المفردة أكبر من جدول 16 (3)");}
+    else{fg=interp(G_AIR_MC.n,G_AIR_MC[val("c_arr")==="space"?"space":"touch"][trays],Math.min(nEff,9));
+      if(nEff>3)warn.push("جدول 17 لبحره حتى 3 كابلات — استُخدم جدول IEC 60364-5-52 لما فوقها");}
+    add("التجميع",fg);
+  }else{
+    const duct=inst==="duct";
+    add("حرارة التربة",interp(B.gndT,B.gnd[c.ins],num("c_tgnd")));
+    const d=parseFloat(val("c_depth"));
+    add("عمق الدفن",duct?interp(B.depD,one?B.depD1:B.depDM,d):interp(B.dep,B.depG[S<=70?"s":S<=240?"m":"l"],d));
+    add("مقاومة التربة",interp(B.soilR,bySize((duct?B.soilD:B.soilG)[one?"single":"multi"],S),parseFloat(val("c_soil"))));
+    const set=duct?(one?B.gD1:B.gDM):(one?B.gG1:B.gGM);
+    const g=byCount(set[val("c_arr")]||set.touch,nEff); if(g.clamped)warn.push("عدد الدوائر أكبر من الجدول (6) — استُخدم آخر معامل");
+    add("التجميع",g.f);
+  }
+  const ex=num("c_extra")||1; if(ex!==1)add("معامل إضافي",ex);
+  return {f,parts,warn};
+}
 function deratingFor(c,inst,S,nEff){
+  if(c.mfr==="bahra")return deratingBahra(c,inst,S,nEff);
   const parts=[]; let f=1, warn=[];
   if(inst==="air"){
     const ft=interp(TT,AIRT[c.ins],num("c_tair")); parts.push(["حرارة الهواء",ft]); f*=ft;
@@ -430,6 +516,8 @@ function calcCable(){
   h+=`${tile("الكابل المختار",cableName(c,S,p),"",true)}${tile("سعة الكابل بعد التخفيض Iz",fmt(Iz,0),"A")}</div>`;
   h+=`<div class="pills">${pill(Ib<=In,"Ib ≤ In")}${pill(In<=Iz,"In ≤ Iz")}${pill(v.pct<=lim,"هبوط الجهد <bdi dir=\"ltr\">"+fmt(v.pct,2)+"% ≤ "+lim+"%</bdi>")}${d.warn.map(w=>pill(false,w,"warn")).join("")}</div>`;
   h+=kv([
+    ["المصنّع / المرجع",MFR[c.mfr]+" — "+c.src],
+    ["ظروف الكتالوج الأساسية",BASE[c.mfr]],
     ["تيار الكتالوج للكابل الواحد ("+(inst==="ground"?"مدفون":inst==="duct"?"duct":"هواء")+")",r[col]+" A"],
     ...d.parts.map(x=>[x[0],fmt(x[1],3)]),
     ["معامل التخفيض الكلي",fmt(d.f,3)],
@@ -449,12 +537,13 @@ function calcCable(){
 let FROWS=[{k:"wire",s:4,q:3},{k:"wire",s:2.5,q:3}];
 function fillOD(r){
   if(r.k==="wire")return WIRE[r.s]||0;
+  if(WIRESETS[r.k])return WIRESETS[r.k].od[r.s]||0;
   if(r.k==="custom")return +r.od||0;
   const row=CABLES[r.k].rows.find(x=>x[0]==r.s); return row?row[6]:0;
 }
-function sizesFor(k){return k==="wire"?Object.keys(WIRE).map(Number):k==="custom"?[]:CABLES[k].rows.map(r=>r[0]);}
+function sizesFor(k){return k==="wire"?Object.keys(WIRE).map(Number):WIRESETS[k]?Object.keys(WIRESETS[k].od).map(Number).sort((a,b)=>a-b):k==="custom"?[]:CABLES[k].rows.map(r=>r[0]);}
 function renderFillRows(){
-  const kinds=[["wire","سلك H07V-R مفرد 450/750V"],...Object.entries(CABLES).map(([k,c])=>[k,c.label]),["custom","قطر يدوي"]];
+  const kinds=[["wire","سلك H07V-R مفرد 450/750V (EN 50525)"],...Object.entries(WIRESETS).map(([k,w])=>[k,w.label]),...Object.entries(CABLES).map(([k,c])=>[k,MFR[c.mfr]+" — "+c.label]),["custom","قطر يدوي"]];
   $("f_rows").innerHTML=FROWS.map((r,i)=>{
     const sz=sizesFor(r.k);
     const sizeCtl=r.k==="custom"?`<label class="f">القطر (مم)<input type="number" step="any" data-i="${i}" data-f="od" value="${r.od||10}"></label>`
@@ -539,7 +628,7 @@ function calcVD(){
   const per1=vdrop(I,1,r[2],X,p,ph,V,pf).pct; const Lmax=per1>0?Math.max(0,(lim-up)/per1):Infinity;
   let h=`<div class="tiles">${tile("هبوط الجهد",fmt(v.dv,2),"V")}${tile("النسبة",fmt(v.pct,2),"%",true)}${tile("الإجمالي مع المنبع",fmt(tot,2),"%")}${tile("أقصى طول مسموح",fmt(Lmax,0),"m")}</div>`;
   h+=`<div class="pills">${pill(tot<=lim,tot<=lim?"مقبول":"يتجاوز الحد")}</div>`;
-  h+=kv([["R عند درجة التشغيل (السويدي)",r[2]+" Ω/km"],["X",fmt(X,4)+" Ω/km"],["الجهد عند الحمل",fmt(V-v.dv,1)+" V"],["mV/A/m",fmt(v.dv/I/L*1000*p,3)+" (للكابل الواحد)"]]);
+  h+=kv([["R عند درجة التشغيل ("+MFR[c.mfr]+")",r[2]+" Ω/km"],["X",fmt(X,4)+" Ω/km"],["الجهد عند الحمل",fmt(V-v.dv,1)+" V"],["mV/A/m",fmt(v.dv/I/L*1000*p,3)+" (للكابل الواحد)"]]);
   const rows=c.rows.map(rr=>{const q=vdrop(I,L,rr[2],xOf(c,rr[0]),p,ph,V,pf).pct+up;return `<tr class="${rr===r?"sel":""}"><td class="n">${rr[0]}</td><td class="n">${fmt(q,2)}</td><td>${q<=lim?"✓":"✗"}</td></tr>`;}).join("");
   h+=`<h3>كل المقاطع لنفس الدائرة</h3><div class="tw"><table><thead><tr><th>mm²</th><th>إجمالي %</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
   $("o_vd").innerHTML=h;
@@ -586,12 +675,102 @@ function calcSC(){
   $("o_sc").innerHTML=h;
 }
 
+/* ---------------- BUSWAY ---------------- */
+function calcBus(){
+  const key=val("b_type"), b=BUSWAY[key]; const {ll}=sysV("b_v"); const mode=val("b_mode"); const pf=Math.min(1,num("b_pf")||1);
+  const P=num("b_p"); const Ib=mode==="A"?P:P*1000/(Math.sqrt(3)*ll*(mode==="kW"?pf:1));
+  const L=num("b_len"), T=num("b_t"), lim=num("b_vdl")||5, ik=num("b_ik"), dist=val("b_dist")==="dist", k=dist?0.5:1;
+  const sn=Math.sqrt(Math.max(0,1-pf*pf));
+  const vd=i=>{const dv=k*Math.sqrt(3)*Ib*L*(b.R[i]*pf+b.X[i]*sn)/1000;return {dv,pct:dv/ll*100};};
+  const col=b.In.findIndex(x=>x>=Ib-1e-9);
+  let byI=null;
+  if(col>=0&&Ib>0)byI=T<=40?b.In[col]:BUS_AMB[key][T<=45?45:T<=50?50:T<=55?55:60][col];
+  if(Ib<=0||byI==null){$("o_bus").innerHTML=`<div class="tiles">${tile("تيار التصميم Ib",fmt(Ib,0),"A")}</div><div class="pills">${pill(false,"لا يوجد مقنن مناسب في هذا النوع عند "+T+"°C")}</div><p class="note">أكبر مقنن ${b.In[b.In.length-1]} A. قسّم الحمل على أكثر من خط أو اختر نوعاً آخر.</p>`;return;}
+  const i0=b.In.indexOf(byI); let i=i0; while(i<b.In.length-1&&vd(i).pct>lim)i++;
+  const v=vd(i), In=b.In[i]; const icwOk=!(ik>0)||b.Icw[i]>=ik; const brk=BREAKERS.find(x=>x>=Ib-1e-9);
+  let h=`<div class="tiles">${tile("تيار التصميم Ib",fmt(Ib,0),"A")}${tile("المقنن المختار",In,"A "+b.mat,true)}${tile("هبوط الجهد",fmt(v.pct,2),"%")}${tile("Icw (1s)",b.Icw[i],"kA")}</div>`;
+  h+=`<div class="pills">${pill(In>=Ib,"Ib ≤ In")}${pill(v.pct<=lim,"هبوط الجهد <bdi dir=\"ltr\">"+fmt(v.pct,2)+"% ≤ "+lim+"%</bdi>")}${ik>0?pill(icwOk,"Icw <bdi dir=\"ltr\">"+b.Icw[i]+" ≥ "+ik+" kA</bdi>"):""}${T>60?pill(false,"الحرارة أعلى من جدول الكتالوج (60°C)","warn"):""}${brk&&brk>In?pill(false,"قاطع الحماية "+brk+"A أكبر من مقنن الـ busway","warn"):""}</div>`;
+  h+=kv([
+    ["النوع / المرجع",b.label],
+    ["المقنن حسب التيار والحرارة فقط",byI+" A"],
+    ["المقنن بعد شرط هبوط الجهد",In+" A"],
+    ["هبوط الجهد",fmt(v.dv,2)+" V ("+fmt(v.pct,2)+"%)"],
+    ["معامل توزيع الحمل k",k+(dist?" (موزّع)":" (في النهاية)")],
+    ["R عند الحرارة التشغيلية",b.R[i]+" mΩ/m"],
+    ["X",b.X[i]+" mΩ/m"],
+    ["R عند 20°C",b.R20[i]+" mΩ/m"],
+    ["أبعاد المقطع L×H",b.dim[i]+" mm"],
+    ["قاطع الحماية المقترح",brk?brk+" A":"—"]
+  ]);
+  const rows=b.In.map((x,j)=>{const q=vd(j);const ok=j>=i0&&q.pct<=lim&&(!(ik>0)||b.Icw[j]>=ik);return `<tr class="${j===i?"sel":""}"><td class="n">${x}</td><td class="n">${b.dim[j]}</td><td class="n">${b.R[j]}</td><td class="n">${b.X[j]}</td><td class="n">${fmt(q.pct,2)}</td><td class="n">${b.Icw[j]}</td><td>${ok?"✓":"✗"}</td></tr>`;}).join("");
+  h+=`<h3>كل المقننات لنفس الحمل</h3><div class="tw"><table><thead><tr><th>In (A)</th><th>L×H mm</th><th>R mΩ/m</th><th>X mΩ/m</th><th>هبوط %</th><th>Icw kA</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  h+=`<p class="note">البيانات من كتالوج بحره TBS (4 موصلات، IEC 61439-6). المقننات عند 35–40°C، وفوقها حسب جدول الكتالوج لحرارة الوسط. Icw لمدة 1 ثانية (مقنن 630A نحاس: 0.5 ثانية). للتركيب الرأسي أو درجات IP الأعلى راجع الكتالوج.</p>`;
+  $("o_bus").innerHTML=h;
+}
+
+/* ---------------- EXCEL EXPORT ---------------- */
+const toNum=t=>{const s=String(t).replace(/,/g,"").trim();return /^-?\d+(\.\d+)?$/.test(s)?Number(s):String(t).trim();};
+const ownText=el=>[...el.childNodes].filter(n=>n.nodeType===3).map(n=>n.textContent).join(" ").replace(/\s+/g," ").trim();
+const ctlVal=e=>e.tagName==="SELECT"?(e.selectedOptions[0]?toNum(e.selectedOptions[0].textContent):""):(e.type==="number"?toNum(e.value):e.value);
+function sheetFor(id){
+  const panel=$("v-"+id); const cards=panel.querySelectorAll(".card"); const rows=[];
+  const title=document.querySelector(`nav a[href="#${id}"]`).textContent;
+  rows.push([{v:title,s:1}]);
+  rows.push(["Spark — "+new Date().toLocaleString("en-GB")+" — الكود: "+(PROFILE==="sa"?"السعودية":"مصر")]);
+  rows.push([]);
+  const sect=t=>{rows.push([{v:t,s:2},{v:"",s:2},{v:"",s:2}]);};
+  // inputs
+  sect("المدخلات");
+  let lastRowHead="";
+  cards[0].querySelectorAll("h3, .row, label.f").forEach(el=>{
+    if(el.closest(".hide"))return;
+    if(el.tagName==="H3"){rows.push([]);sect(el.textContent.trim());lastRowHead="";return;}
+    if(el.classList.contains("row")){
+      const labs=[...el.querySelectorAll("label.f")]; const head=labs.map(ownText).join("|");
+      if(head!==lastRowHead){rows.push(labs.map(l=>({v:ownText(l),s:3})));lastRowHead=head;}
+      rows.push([].concat(...labs.map(l=>[...l.querySelectorAll("input,select")].map(c=>({v:ctlVal(c),s:4})))));
+      return;
+    }
+    if(el.closest(".row"))return;
+    const c=el.querySelector("input,select"); if(!c)return;
+    rows.push([ownText(el),ctlVal(c)]);
+  });
+  // results
+  rows.push([]); sect("النتائج");
+  const out=cards[1].querySelector("div[id^=o_]");
+  [...out.children].forEach(el=>{
+    if(el.classList.contains("tiles"))el.querySelectorAll(".tile").forEach(t=>{const v=t.querySelector(".v");const sm=v.querySelector("small");rows.push([t.querySelector(".k").textContent.trim(),toNum(ownText(v)),sm?sm.textContent.trim():""]);});
+    else if(el.classList.contains("pills"))el.querySelectorAll(".pill").forEach(p=>rows.push(["التحقق",p.textContent.trim(),p.classList.contains("ok")?"OK":p.classList.contains("warn")?"تنبيه":"غير محقق"]));
+    else if(el.classList.contains("kv")){const sp=[...el.children];for(let i=0;i<sp.length;i+=2)rows.push([sp[i].textContent.trim(),toNum(sp[i+1]?sp[i+1].textContent:"")]);}
+    else if(el.tagName==="H3"){rows.push([]);sect(el.textContent.trim());}
+    else if(el.classList.contains("tw")){
+      el.querySelectorAll("tr").forEach(tr=>{const th=tr.querySelector("th");rows.push([...tr.children].map(td=>({v:th?td.textContent.trim():toNum(td.textContent),s:th?3:4})));});
+    }
+    else if(el.classList.contains("note")){rows.push([]);rows.push([el.textContent.trim()]);}
+  });
+  return {name:title,rtl:true,widths:[44,22,16,14,14,14,10],rows};
+}
+function b64(u8){let s="";for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return btoa(s);}
+function exportExcel(){
+  const btn=$("x_export"); const back=t=>{btn.textContent=t;setTimeout(()=>btn.textContent="تصدير Excel",2000);};
+  try{
+    calcAll();
+    const data=XL.build(TABS.filter(t=>t!=="refs").map(sheetFor));
+    const d=new Date(), z=n=>String(n).padStart(2,"0");
+    const name=`Spark-${d.getFullYear()}${z(d.getMonth()+1)}${z(d.getDate())}-${z(d.getHours())}${z(d.getMinutes())}.xlsx`;
+    if(window.AndroidBridge&&AndroidBridge.saveFile){AndroidBridge.saveFile(name,b64(data));back("تم الحفظ");}
+    else{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([data],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));a.download=name;document.body.appendChild(a);a.click();a.remove();back("تم التنزيل");}
+  }catch(e){back("تعذّر التصدير");console.error(e);}
+}
+
 /* ---------------- UI wiring ---------------- */
+const TABS=["cable","fill","load","vdrop","short","bus","refs"];
 const VOPTS={sa:[["400/230","400/230 V"],["380/220","380/220 V"],["220/127","220/127 V"]],eg:[["380/220","380/220 V"],["400/230","400/230 V"]]};
 const DEFAULTS={sa:{c_tair:50,c_tgnd:35,c_vdl:5,v_lim:5,c_soil:"1.5"},eg:{c_tair:40,c_tgnd:30,c_vdl:5,v_lim:5,c_soil:"1.2"}};
 function fillSelect(el,opts,keep){const old=el.value;el.innerHTML=opts.map(([v,l])=>`<option value="${v}">${l}</option>`).join("");if(keep&&[...el.options].some(o=>o.value===old))el.value=old;}
 function setupStatic(){
-  document.querySelectorAll(".ctype").forEach(el=>fillSelect(el,Object.entries(CABLES).map(([k,c])=>[k,c.label])));
+  document.querySelectorAll(".ctype").forEach(el=>{el.innerHTML=Object.keys(MFR).map(m=>`<optgroup label="${MFR[m]}">${Object.entries(CABLES).filter(([k,c])=>c.mfr===m).map(([k,c])=>`<option value="${k}">${MFR[m]} — ${c.label}</option>`).join("")}</optgroup>`).join("");});
+  fillSelect($("b_type"),Object.entries(BUSWAY).map(([k,b])=>[k,b.label]));
   $("s_type").value="cuX1"; $("c_type").value="cuX4";
   fillSelect($("s_kva"),TRAFO.map(x=>[x,x+" kVA"])); $("s_kva").value="1000";
   refreshSizes();
@@ -599,7 +778,7 @@ function setupStatic(){
 function refreshSizes(){
   const c=CABLES[val("c_type")]; const key=val("c_type");
   fillSelect($("c_maxs"),c.rows.map(r=>[r[0],r[0]+" mm²"]),$("c_maxs").dataset.k===key);
-  if($("c_maxs").dataset.k!==key){$("c_maxs").value=c.core==="single"?"630":"300";$("c_maxs").dataset.k=key;}
+  if($("c_maxs").dataset.k!==key){const want=c.core==="single"?630:300;$("c_maxs").value=String((c.rows.find(r=>r[0]===want)||c.rows[c.rows.length-1])[0]);$("c_maxs").dataset.k=key;}
   const pickDef=(sel,ck,def)=>{const cc=CABLES[ck];const same=$(sel).dataset.k===ck;fillSelect($(sel),cc.rows.map(r=>[r[0],r[0]]),same);
     if(!same){$(sel).value=cc.rows.some(r=>r[0]===def)?def:cc.rows[Math.floor(cc.rows.length/2)][0];$(sel).dataset.k=ck;}};
   pickDef("v_s",val("v_type"),95); pickDef("s_s",val("s_type"),300);
@@ -609,7 +788,7 @@ function refreshInst(){
   document.querySelectorAll(".g-air").forEach(e=>e.classList.toggle("hide",inst!=="air"));
   document.querySelectorAll(".g-gnd").forEach(e=>e.classList.toggle("hide",inst==="air"));
   const arr=inst==="air"?(c.core==="single"?[["trefoil","Trefoil على تراي مثقب"]]:[["touch","تراي مثقب — متلامسة"],["space","تراي مثقب — بمسافة"]])
-    :inst==="duct"?[["touch","ducts متلامسة"],["s25","ducts بمسافة 0.25 م"]]
+    :inst==="duct"?(c.mfr==="bahra"?(c.core==="single"?[["touch","ducts متلامسة"],["s45","ducts بمسافة 0.45 م"]]:[["touch","ducts متلامسة"],["s30","ducts بمسافة 0.30 م"]]):[["touch","ducts متلامسة"],["s25","ducts بمسافة 0.25 م"]])
     :[["touch","متلامسة"],["s15","بمسافة 0.15 م"],["s30","بمسافة 0.30 م"]];
   fillSelect($("c_arr"),arr,true);
 }
@@ -633,16 +812,17 @@ function calcAll(){
   try{calcLoad();}catch(e){$("o_load").textContent="خطأ: "+e.message;}
   try{calcVD();}catch(e){$("o_vd").textContent="خطأ: "+e.message;}
   try{calcSC();}catch(e){$("o_sc").textContent="خطأ: "+e.message;}
+  try{calcBus();}catch(e){$("o_bus").textContent="خطأ: "+e.message;}
 }
 /* storage (per viewer, optional) */
 const STORE="elc-v1";
 function save(){try{const s={profile:PROFILE,f:FROWS,l:LROWS,v:{}};document.querySelectorAll("main input[id],main select[id]").forEach(e=>s.v[e.id]=e.value);localStorage.setItem(STORE,JSON.stringify(s));}catch(e){}}
 function load(){try{const s=JSON.parse(localStorage.getItem(STORE)||"null");if(!s)return false;PROFILE=s.profile||"sa";FROWS=s.f||FROWS;LROWS=s.l||LROWS;return s;}catch(e){return false;}}
-function restoreValues(s){if(!s)return;const order=["c_type","v_type","s_type","c_inst","f_kind"];order.forEach(id=>{if(s.v[id]!=null)$(id).value=s.v[id];});refreshSizes();refreshInst();refreshFillKind();
+function restoreValues(s){if(!s)return;const order=["c_type","v_type","s_type","c_inst","f_kind","b_type"];order.forEach(id=>{if(s.v[id]!=null)$(id).value=s.v[id];});refreshSizes();refreshInst();refreshFillKind();
   Object.entries(s.v).forEach(([id,v])=>{const e=$(id);if(e&&!order.includes(id))e.value=v;});}
 
 function route(){
-  const h=(location.hash||"#cable").slice(1); const ok=["cable","fill","load","vdrop","short","refs"].includes(h)?h:"cable";
+  const h=(location.hash||"#cable").slice(1); const ok=TABS.includes(h)?h:"cable";
   document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("on",p.id==="v-"+ok));
   document.querySelectorAll("nav a").forEach(a=>a.setAttribute("aria-current",a.getAttribute("href")==="#"+ok?"page":"false"));
 }
@@ -664,6 +844,7 @@ document.addEventListener("click",e=>{
   if(t.id==="f_add"){FROWS.push({k:"wire",s:2.5,q:3});renderFillRows();calcAll();save();}
   if(t.id==="l_add"){LROWS[PROFILE].push({c:PROFILE==="sa"?"C7":"R",a:500});renderLoadRows();calcAll();save();}
   if(t.id==="p_sa"||t.id==="p_eg"){setProfile(t.id==="p_sa"?"sa":"eg",true);calcAll();save();}
+  if(t.id==="x_export")exportExcel();
   if(t.classList.contains("copy")){
     const txt=$(t.dataset.src).innerText; const done=()=>{t.textContent="تم النسخ";setTimeout(()=>t.textContent="نسخ",1500);};
     try{ if(window.AndroidBridge&&AndroidBridge.copy){AndroidBridge.copy(txt);done();}
