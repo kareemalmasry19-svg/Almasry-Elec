@@ -41,7 +41,7 @@ nav a[aria-current="page"]{background:var(--surface);color:var(--accent);box-sha
 main{max-width:1180px;margin:0 auto;padding:14px 16px 40px}
 .panel{display:none}
 .panel.on{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
-@media (max-width:820px){.panel.on{grid-template-columns:1fr}}
+@media (max-width:820px){.panel.on{grid-template-columns:minmax(0,1fr)}}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px}
 .card h2{font-size:16px;margin:0 0 10px;display:flex;justify-content:space-between;gap:8px;align-items:center}
 .card h3{font-size:13px;color:var(--muted);margin:14px 0 6px;font-weight:600}
@@ -78,6 +78,8 @@ td.n{font-family:var(--f-num);font-variant-numeric:tabular-nums}
 tr.sel td{background:var(--soft);font-weight:600}
 .row{display:grid;grid-template-columns:1.4fr 1fr 0.7fr auto;gap:6px;align-items:end;margin-bottom:6px}
 .row.ld{grid-template-columns:1.6fr 0.9fr auto}
+.lrow{grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid var(--line);border-radius:11px;padding:8px;margin-bottom:8px}
+.lrow .nm{grid-column:1/3}.lrow .x{justify-self:end;align-self:center}
 .x{border:0;background:transparent;color:var(--bad);font-size:20px;cursor:pointer;padding:4px 6px}
 .bar{height:10px;border-radius:99px;background:var(--bg);border:1px solid var(--line);overflow:hidden;margin:6px 0 2px}
 .bar i{display:block;height:100%;background:var(--ok)}
@@ -180,11 +182,13 @@ tr.sel td{background:var(--soft);font-weight:600}
     <h2>المساحات</h2>
     <div id="l_rows"></div>
     <button class="btn" id="l_add" type="button">+ إضافة مساحة</button>
+    <button class="btn" id="l_addk" type="button">+ حمل ثابت kVA</button>
     <h3>إعدادات</h3>
     <div class="grid">
       <label class="f g-sa">التكييف<select id="l_ac"><option value="ac">ذروة صيف مع تكييف</option><option value="noac">بدون تكييف (District cooling)</option><option value="winter">ذروة شتاء مع تدفئة</option></select></label>
       <label class="f g-sa">عدد العدادات (لمعامل التزامن CF)<input id="l_meters" type="number" step="1" min="1" value="1"></label>
       <label class="f">جهد التغذية<select id="l_v" class="sysv"></select></label>
+      <label class="f">معامل التشتت %<input id="l_div" type="number" step="any" value="100"></label>
       <label class="f">احتياطي مستقبلي %<input id="l_spare" type="number" step="any" value="20"></label>
       <label class="f">أقصى تحميل للمحول %<input id="l_tload" type="number" step="any" value="80"></label>
     </div>
@@ -587,35 +591,59 @@ function calcFill(){
 }
 
 /* ---------------- LOAD ---------------- */
-let LROWS={sa:[{c:"C7",a:2500},{c:"C2",a:600}],eg:[{c:"R",a:1800},{c:"C",a:400}]};
-function catList(){return PROFILE==="sa"?SEC_CAT.map(x=>[x[0],x[0]+" — "+x[1]]):[...EG_CAT.map(x=>[x[0],x[1]]),["X","كثافة يدوية VA/m²"]];}
+/* row = {n name, c category, a area m², fl floors, br built ratio %, k load factor kVA/m² (always editable), df, q count, kva (lump rows)} */
+let LROWS={sa:[{n:"مكاتب",c:"C7",a:2500},{n:"محلات",c:"C2",a:600}],
+  eg:[{n:"فيلا (1)",c:"X",a:146.6,fl:2,k:0.09,q:41},{n:"مركز تجاري",c:"X",a:883,fl:3,k:0.12,q:1},{n:"مسجد",c:"X",a:439,fl:3,k:0.04,q:1},{n:"إنارة عامة وطلمبات",c:"L",kva:190,q:1}]};
+function loadCats(){return [...(PROFILE==="sa"?SEC_CAT.map(x=>[x[0],x[0]+" — "+x[1]]):EG_CAT.map(x=>[x[0],x[1]])),["X","معامل يدوي"]];}
+function presetFor(c){ // -> {k kVA/m², df} or null for manual / lump
+  if(PROFILE==="sa"){const x=SEC_CAT.find(z=>z[0]===c);if(!x)return null;const m=val("l_ac");const d=m==="ac"?x[2]:m==="noac"?x[3]:x[4];return {k:(d==null?x[2]:d)/1000,df:x[5],missing:d==null};}
+  const x=EG_CAT.find(z=>z[0]===c);return x?{k:x[2]/1000,df:x[3]}:null;
+}
+function normRow(r){ // fills defaults; also upgrades rows saved by older versions
+  if(r.c==="L"){r.q=r.q==null?1:r.q;r.kva=r.kva==null?0:r.kva;return r;}
+  if(r.c!=="X"&&!presetFor(r.c))r.c="X";
+  const p=presetFor(r.c);
+  if(r.k==null||r.k==="")r.k=p?p.k:(r.d!=null?(+r.d||0)/1000:0.1);
+  else if(p&&!r.custom)r.k=p.k;
+  if(r.df==null||r.df==="")r.df=p?p.df:(PROFILE==="sa"?0.6:1);
+  if(r.fl==null)r.fl=1; if(r.br==null)r.br=100; if(r.q==null)r.q=1; if(r.n==null)r.n="";
+  return r;
+}
 function renderLoadRows(){
-  const L=LROWS[PROFILE]; const cats=PROFILE==="sa"?[...catList(),["X","كثافة يدوية VA/m²"]]:catList();
-  $("l_rows").innerHTML=L.map((r,i)=>`<div class="row ld"><label class="f">الفئة<select data-li="${i}" data-f="c">${cats.map(([k,l])=>`<option value="${k}" ${k===r.c?"selected":""}>${l}</option>`).join("")}</select></label><label class="f">${r.c==="X"?"المساحة م² / VA/m²":"المساحة م²"}<span style="display:flex;gap:4px"><input type="number" step="any" data-li="${i}" data-f="a" value="${r.a}">${r.c==="X"?`<input type="number" step="any" data-li="${i}" data-f="d" value="${r.d||100}">`:""}</span></label><button class="x" type="button" data-ldel="${i}" aria-label="حذف">×</button></div>`).join("");
+  const L=LROWS[PROFILE]; const cats=loadCats(); const sa=PROFILE==="sa";
+  const inp=(i,f,lab,v,extra="")=>`<label class="f">${lab}<input type="number" step="any" data-li="${i}" data-f="${f}" value="${v}" ${extra}></label>`;
+  $("l_rows").innerHTML=L.map((r,i)=>{normRow(r);
+    const name=`<label class="f nm">الوصف<input type="text" data-li="${i}" data-f="n" value="${String(r.n||"").replace(/"/g,"&quot;")}"></label><button class="x" type="button" data-ldel="${i}" aria-label="حذف">×</button>`;
+    if(r.c==="L")return `<div class="row lrow">${name}${inp(i,"kva","الحمل kVA",r.kva)}${inp(i,"q","العدد",r.q,'min="1" step="1"')}</div>`;
+    return `<div class="row lrow">${name}<label class="f">الفئة<select data-li="${i}" data-f="c">${cats.map(([k,l])=>`<option value="${k}" ${k===r.c?"selected":""}>${l}</option>`).join("")}</select></label>${inp(i,"k","معامل الحمل kVA/م²",r.k)}${inp(i,"a","المساحة م²",r.a)}${inp(i,"fl","عدد الأدوار",r.fl)}${inp(i,"br","النسبة البنائية %",r.br)}${inp(i,"q","العدد",r.q,'min="1" step="1"')}${sa?inp(i,"df","معامل الطلب DF",r.df):""}</div>`;
+  }).join("");
 }
 function calcLoad(){
-  const L=LROWS[PROFILE]; const mode=val("l_ac"); const {ll}=sysV("l_v"); let CL=0,DL=0; const lines=[]; let missing=false;
+  const L=LROWS[PROFILE]; const {ll}=sysV("l_v"); const sa=PROFILE==="sa"; let CL=0,DL=0; const lines=[]; let missing=false;
   L.forEach(r=>{
-    let dens,df,name;
-    if(r.c==="X"){dens=+r.d||0;df=PROFILE==="sa"?0.6:1;name="كثافة يدوية";}
-    else if(PROFILE==="sa"){const x=SEC_CAT.find(z=>z[0]===r.c);name=x[0]+" "+x[1];dens=mode==="ac"?x[2]:mode==="noac"?x[3]:x[4];if(dens==null){dens=x[2];missing=true;}df=x[5];}
-    else{const x=EG_CAT.find(z=>z[0]===r.c);name=x[1];dens=x[2];df=x[3];}
-    const cl=(+r.a||0)*dens/1000; const dl=cl*df; CL+=cl; DL+=dl; lines.push([name,+r.a||0,dens,cl,df,dl]);
+    normRow(r); const q=Math.max(0,+r.q||0);
+    if(r.c==="L"){const cl=(+r.kva||0)*q;CL+=cl;DL+=cl;lines.push([r.n||"حمل ثابت","—","—","—","—",+r.kva||0,q,cl,1,cl]);return;}
+    const p=presetFor(r.c); if(p&&p.missing&&!r.custom)missing=true;
+    const k=+r.k||0, df=sa?(+r.df||0):1;
+    const unit=(+r.a||0)*(+r.fl||0)*(+r.br||0)/100*k; const cl=unit*q, dl=cl*df; CL+=cl; DL+=dl;
+    lines.push([r.n||(p?r.c:"—"),+r.a||0,+r.fl||0,+r.br||0,k,unit,q,cl,df,dl]);
   });
   const meters=Math.max(1,Math.round(num("l_meters")));
-  const CF=PROFILE==="sa"?interp(SEC_CF.n,SEC_CF.f,Math.min(meters,99)):1;
-  const CDL=DL*CF; const design=CDL*(1+num("l_spare")/100); const I=CDL*1000/(Math.sqrt(3)*ll);
+  const CF=sa?interp(SEC_CF.n,SEC_CF.f,Math.min(meters,99)):1;
+  const div=($("l_div").value===""?100:num("l_div"))/100;
+  const CDL=DL*CF*div; const design=CDL*(1+num("l_spare")/100); const I=CDL*1000/(Math.sqrt(3)*ll);
   const tl=(num("l_tload")||100)/100;
-  const units=PROFILE==="sa"?[500,1000,1500]:TRAFO;
+  const units=sa?[500,1000,1500]:TRAFO;
   let tr=units.find(u=>u*tl>=design), ntr=1;
   if(!tr){tr=units[units.length-1];ntr=Math.ceil(design/(tr*tl));}
-  let h=`<div class="tiles">${tile("الحمل المتصل CL",fmt(CL,1),"kVA")}${tile("حمل الطلب DL",fmt(DL,1),"kVA")}${tile(PROFILE==="sa"?"الحمل المتزامن CDL":"أقصى طلب",fmt(CDL,1),"kVA",true)}${tile("التيار عند "+ll+" V",fmt(I,0),"A")}</div>`;
+  const c=(x,d)=>typeof x==="number"?fmt(x,d):x;
+  let h=`<div class="tiles">${tile("إجمالي الحمل",fmt(CL,2),"kVA")}${sa?tile("حمل الطلب DL",fmt(DL,1),"kVA"):tile("معامل التشتت",fmt(div*100,0),"%")}${tile(sa?"الحمل المتزامن CDL":"الحمل عند الموزع",fmt(CDL,2),"kVA",true)}${tile("التيار عند "+ll+" V",fmt(I,0),"A")}</div>`;
   h+=`<div class="pills">${pill(true,"المحول المقترح: "+(ntr>1?ntr+" × ":"")+tr+" kVA")}${missing?pill(false,"C1/C2 بدون قيمة لهذا الوضع — استُخدمت قيمة الصيف","warn"):""}</div>`;
-  h+=`<div class="tw"><table><thead><tr><th>الفئة</th><th>م²</th><th>VA/m²</th><th>CL kVA</th><th>DF</th><th>DL kVA</th></tr></thead><tbody>${lines.map(l=>`<tr><td>${l[0]}</td><td class="n">${fmt(l[1],0)}</td><td class="n">${l[2]}</td><td class="n">${fmt(l[3],1)}</td><td class="n">${l[4]}</td><td class="n">${fmt(l[5],1)}</td></tr>`).join("")}</tbody></table></div>`;
-  h+=kv([...(PROFILE==="sa"?[["معامل التزامن CF ("+meters+" عداد)",fmt(CF,3)]]:[]),["الحمل التصميمي مع الاحتياطي",fmt(design,1)+" kVA"],["أقصى تحميل للمحول",fmt(tl*100,0)+"%"]]);
-  h+=PROFILE==="sa"
-    ?`<p class="note">حسب SEC DPS (Dec 2022): CL = المساحة × الكثافة، DL = CL × DF، CDL = مجموع DL × CF. قيمة C1 و C2 هنا هي الكثافة المعلنة للمساحات خارج جدول الملحق 1 — للوحدات السكنية الصغيرة استخدم جدول المساحة/kVA في الملحق.</p>`
-    :`<p class="note">قيم مصر حسب ضوابط شركات التوزيع (8 و 10 kVA لكل 100 م²) وتمثل القدرة المطلوبة للتوصيل. أضف الأحمال الخاصة (مصاعد، مضخات، تكييف مركزي) كبنود يدوية.</p>`;
+  h+=`<div class="tw"><table><thead><tr><th>الوصف</th><th>م²</th><th>أدوار</th><th>بناء %</th><th>kVA/م²</th><th>حمل القطعة</th><th>العدد</th><th>الإجمالي kVA</th>${sa?"<th>DF</th><th>DL kVA</th>":""}</tr></thead><tbody>${lines.map(l=>`<tr><td>${l[0]}</td><td class="n">${c(l[1],1)}</td><td class="n">${c(l[2],0)}</td><td class="n">${c(l[3],0)}</td><td class="n">${c(l[4],4)}</td><td class="n">${fmt(l[5],3)}</td><td class="n">${fmt(l[6],0)}</td><td class="n">${fmt(l[7],2)}</td>${sa?`<td class="n">${l[8]}</td><td class="n">${fmt(l[9],2)}</td>`:""}</tr>`).join("")}</tbody></table></div>`;
+  h+=kv([...(sa?[["معامل التزامن CF ("+meters+" عداد)",fmt(CF,3)],["معامل التشتت",fmt(div*100,0)+"%"]]:[]),["الحمل التصميمي مع الاحتياطي",fmt(design,1)+" kVA"],["أقصى تحميل للمحول",fmt(tl*100,0)+"%"]]);
+  h+=sa
+    ?`<p class="note">حسب SEC DPS (Dec 2022): حمل القطعة = المساحة × الأدوار × النسبة البنائية × المعامل، DL = الإجمالي × DF، CDL = مجموع DL × CF × معامل التشتت. اختيار الفئة يملأ المعامل و DF تلقائياً وتقدر تعدّلهم بنفسك.</p>`
+    :`<p class="note">حمل القطعة = المساحة × عدد الأدوار × النسبة البنائية × معامل الحمل، والإجمالي = حمل القطعة × العدد، والحمل عند الموزع = المجموع × معامل التشتت. معامل الحمل تكتبه بنفسك، أو اختر فئة لتعبئته (8 و 10 kVA لكل 100 م² حسب ضوابط شركات التوزيع).</p>`;
   $("o_load").innerHTML=h;
 }
 
@@ -766,7 +794,7 @@ function exportExcel(){
 /* ---------------- UI wiring ---------------- */
 const TABS=["cable","fill","load","vdrop","short","bus","refs"];
 const VOPTS={sa:[["400/230","400/230 V"],["380/220","380/220 V"],["220/127","220/127 V"]],eg:[["380/220","380/220 V"],["400/230","400/230 V"]]};
-const DEFAULTS={sa:{c_tair:50,c_tgnd:35,c_vdl:5,v_lim:5,c_soil:"1.5"},eg:{c_tair:40,c_tgnd:30,c_vdl:5,v_lim:5,c_soil:"1.2"}};
+const DEFAULTS={sa:{c_tair:50,c_tgnd:35,c_vdl:5,v_lim:5,c_soil:"1.5",l_div:100},eg:{c_tair:40,c_tgnd:30,c_vdl:5,v_lim:5,c_soil:"1.2",l_div:100}};
 function fillSelect(el,opts,keep){const old=el.value;el.innerHTML=opts.map(([v,l])=>`<option value="${v}">${l}</option>`).join("");if(keep&&[...el.options].some(o=>o.value===old))el.value=old;}
 function setupStatic(){
   document.querySelectorAll(".ctype").forEach(el=>{el.innerHTML=Object.keys(MFR).map(m=>`<optgroup label="${MFR[m]}">${Object.entries(CABLES).filter(([k,c])=>c.mfr===m).map(([k,c])=>`<option value="${k}">${MFR[m]} — ${c.label}</option>`).join("")}</optgroup>`).join("");});
@@ -830,7 +858,10 @@ document.addEventListener("input",e=>{
   const t=e.target;
   if(t.dataset.i!=null){const r=FROWS[+t.dataset.i];r[t.dataset.f]=t.dataset.f==="k"?t.value:(t.dataset.f==="s"?parseFloat(t.value):t.value);
     if(t.dataset.f==="k"){const sz=sizesFor(t.value);r.s=sz.includes(r.s)?r.s:sz[0];renderFillRows();}}
-  if(t.dataset.li!=null){const r=LROWS[PROFILE][+t.dataset.li];r[t.dataset.f]=t.value;if(t.dataset.f==="c")renderLoadRows();}
+  if(t.dataset.li!=null){const r=LROWS[PROFILE][+t.dataset.li];const f=t.dataset.f;r[f]=t.value;
+    if(f==="k"||f==="df")r.custom=true;
+    if(f==="c"){r.custom=false;const p=presetFor(r.c);if(p){r.k=p.k;r.df=p.df;}renderLoadRows();}}
+  if(t.id==="l_ac")renderLoadRows();
   if(["c_type","v_type","s_type"].includes(t.id))refreshSizes();
   if(t.id==="c_type"||t.id==="c_inst")refreshInst();
   if(t.id==="f_kind")refreshFillKind();
@@ -842,7 +873,8 @@ document.addEventListener("click",e=>{
   if(t.dataset.del!=null){FROWS.splice(+t.dataset.del,1);renderFillRows();calcAll();save();}
   if(t.dataset.ldel!=null){LROWS[PROFILE].splice(+t.dataset.ldel,1);renderLoadRows();calcAll();save();}
   if(t.id==="f_add"){FROWS.push({k:"wire",s:2.5,q:3});renderFillRows();calcAll();save();}
-  if(t.id==="l_add"){LROWS[PROFILE].push({c:PROFILE==="sa"?"C7":"R",a:500});renderLoadRows();calcAll();save();}
+  if(t.id==="l_add"){LROWS[PROFILE].push({n:"",c:"X",a:100,k:PROFILE==="sa"?0.116:0.09});renderLoadRows();calcAll();save();}
+  if(t.id==="l_addk"){LROWS[PROFILE].push({n:"",c:"L",kva:10,q:1});renderLoadRows();calcAll();save();}
   if(t.id==="p_sa"||t.id==="p_eg"){setProfile(t.id==="p_sa"?"sa":"eg",true);calcAll();save();}
   if(t.id==="x_export")exportExcel();
   if(t.classList.contains("copy")){
@@ -858,7 +890,7 @@ setupStatic();
 const saved=load();
 setProfile(PROFILE,!saved);
 refreshInst(); refreshFillKind(); renderFillRows();
-restoreValues(saved);
+restoreValues(saved); renderLoadRows();
 route(); calcAll();
 </script>
 </body>

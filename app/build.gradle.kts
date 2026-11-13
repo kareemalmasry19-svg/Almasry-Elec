@@ -7,8 +7,8 @@ android {
         applicationId = "com.almasry.elec"
         minSdk = 24
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.2"
+        versionCode = 4
+        versionName = "1.3"
     }
     // Fixed test key so every CI build installs over the previous one. Not for Play Store.
     signingConfigs {
